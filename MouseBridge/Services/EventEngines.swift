@@ -464,6 +464,14 @@ struct ShortcutEventPlanner {
 
     func plan(for shortcut: KeyboardShortcutDefinition) -> [ShortcutEventPlanStep] {
         let requestedFlags = CGEventFlags(rawValue: shortcut.modifiersRawValue)
+        let physicalModifierFlags = modifierOrder.reduce(CGEventFlags()) { partialResult, modifier in
+            var result = partialResult
+            if requestedFlags.contains(modifier.flag) {
+                result.insert(modifier.flag)
+            }
+            return result
+        }
+        let targetKeyEventFlags = requestedFlags.subtracting(physicalModifierFlags)
         var activeFlags: CGEventFlags = []
         var steps: [ShortcutEventPlanStep] = []
 
@@ -483,7 +491,7 @@ struct ShortcutEventPlanner {
             ShortcutEventPlanStep(
                 keyCode: shortcut.keyCode,
                 keyDown: true,
-                flagsRawValue: activeFlags.rawValue,
+                flagsRawValue: activeFlags.union(targetKeyEventFlags).rawValue,
                 isMainKey: true
             )
         )
@@ -491,7 +499,7 @@ struct ShortcutEventPlanner {
             ShortcutEventPlanStep(
                 keyCode: shortcut.keyCode,
                 keyDown: false,
-                flagsRawValue: activeFlags.rawValue,
+                flagsRawValue: activeFlags.union(targetKeyEventFlags).rawValue,
                 isMainKey: true
             )
         )
@@ -512,24 +520,169 @@ struct ShortcutEventPlanner {
     }
 }
 
+struct ShortcutPostingProfile: Equatable {
+    var sourceStateID: CGEventSourceStateID
+    var tapLocation: CGEventTapLocation
+    var interEventDelayMicroseconds: useconds_t
+
+    static let globalKeyboardShortcut = ShortcutPostingProfile(
+        sourceStateID: .hidSystemState,
+        tapLocation: .cghidEventTap,
+        interEventDelayMicroseconds: 10_000
+    )
+}
+
 final class KeyboardShortcutInjector: @unchecked Sendable {
     private let marker: Int64
+    private let postingProfile: ShortcutPostingProfile
     private let planner = ShortcutEventPlanner()
+    private let postingQueue = DispatchQueue(label: "cn.phalfstudio.ScrollBridge.shortcutPosting")
 
-    init(marker: Int64) {
+    init(marker: Int64, postingProfile: ShortcutPostingProfile = .globalKeyboardShortcut) {
         self.marker = marker
+        self.postingProfile = postingProfile
     }
 
     func post(_ shortcut: KeyboardShortcutDefinition) {
-        let source = CGEventSource(stateID: .combinedSessionState)
-        for step in planner.plan(for: shortcut) {
+        postingQueue.async { [self] in
+            postImmediately(shortcut)
+        }
+    }
+
+    private func postImmediately(_ shortcut: KeyboardShortcutDefinition) {
+        postKeyEvents(planner.plan(for: shortcut))
+    }
+
+    private func postKeyEvents(_ plan: [ShortcutEventPlanStep]) {
+        let source = CGEventSource(stateID: postingProfile.sourceStateID)
+        for step in plan {
             guard let event = CGEvent(keyboardEventSource: source, virtualKey: step.keyCode, keyDown: step.keyDown) else {
                 continue
             }
             event.flags = CGEventFlags(rawValue: step.flagsRawValue)
             event.setIntegerValueField(.eventSourceUserData, value: marker)
-            event.post(tap: .cghidEventTap)
+            event.post(tap: postingProfile.tapLocation)
+            usleep(postingProfile.interEventDelayMicroseconds)
         }
+    }
+}
+
+final class SystemActionRunner: @unchecked Sendable {
+    var unsupportedActionHandler: ((SystemMappingAction) -> Void)?
+
+    private let ownBundleID = Bundle.main.bundleIdentifier
+    private let fallbackShortcutPoster: @Sendable (KeyboardShortcutDefinition) -> Void
+    private var lastUserApplication: NSRunningApplication?
+    private var observer: NSObjectProtocol?
+
+    init(fallbackShortcutPoster: @escaping @Sendable (KeyboardShortcutDefinition) -> Void) {
+        self.fallbackShortcutPoster = fallbackShortcutPoster
+        DispatchQueue.main.async { [weak self] in
+            self?.observeFrontmostApplication()
+            self?.updateLastUserApplication(NSWorkspace.shared.frontmostApplication)
+        }
+    }
+
+    deinit {
+        if let observer {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
+    }
+
+    func trigger(_ action: SystemMappingAction) {
+        DispatchQueue.main.async { [weak self] in
+            self?.triggerOnMain(action)
+        }
+    }
+
+    private func triggerOnMain(_ action: SystemMappingAction) {
+        switch action {
+        case .missionControl:
+            openBundle("com.apple.exposelauncher") { [weak self] in
+                self?.postDistributed("com.apple.expose.awake")
+            }
+        case .currentAppWindows:
+            activateLastUserApplicationIfNeeded { [weak self] in
+                self?.postDistributed("com.apple.expose.front.awake")
+            }
+        case .showDesktop:
+            if let fallbackShortcut = action.fallbackShortcut {
+                fallbackShortcutPoster(fallbackShortcut)
+            }
+        case .spaceLeft, .spaceRight:
+            unsupportedActionHandler?(action)
+            if let fallbackShortcut = action.fallbackShortcut {
+                fallbackShortcutPoster(fallbackShortcut)
+            }
+        }
+    }
+
+    private func observeFrontmostApplication() {
+        observer = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            self?.updateLastUserApplication(app)
+        }
+    }
+
+    private func updateLastUserApplication(_ app: NSRunningApplication?) {
+        guard let app else { return }
+        if let ownBundleID, app.bundleIdentifier == ownBundleID {
+            return
+        }
+        guard app.activationPolicy == .regular else {
+            return
+        }
+        lastUserApplication = app
+    }
+
+    private func frontmostUserApplication() -> NSRunningApplication? {
+        if let app = NSWorkspace.shared.frontmostApplication,
+           app.activationPolicy == .regular,
+           app.bundleIdentifier != ownBundleID {
+            return app
+        }
+        return lastUserApplication
+    }
+
+    private func activateLastUserApplicationIfNeeded(_ completion: @escaping @Sendable () -> Void) {
+        guard let app = frontmostUserApplication() else {
+            completion()
+            return
+        }
+        guard !app.isActive else {
+            completion()
+            return
+        }
+        app.activate(options: [.activateIgnoringOtherApps])
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(80)) {
+            completion()
+        }
+    }
+
+    private func openBundle(_ bundleID: String, fallback: (@Sendable () -> Void)? = nil) {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            fallback?()
+            return
+        }
+        let config = NSWorkspace.OpenConfiguration()
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, error in
+            if error != nil {
+                fallback?()
+            }
+        }
+    }
+
+    private func postDistributed(_ name: String) {
+        DistributedNotificationCenter.default().postNotificationName(
+            Notification.Name(name),
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
     }
 }
 
@@ -643,6 +796,9 @@ final class EventTapService: @unchecked Sendable {
     private let smoothEngine = SmoothScrollEngine(marker: EventTapService.syntheticMarker)
     private let mappingEngine = ButtonMappingEngine()
     private let shortcutInjector = KeyboardShortcutInjector(marker: EventTapService.syntheticMarker)
+    private lazy var systemActionRunner = SystemActionRunner { [shortcutInjector] shortcut in
+        shortcutInjector.post(shortcut)
+    }
     private let frontmostApplicationProvider = FrontmostApplicationProvider()
     private let performanceRecorder = EventTapPerformanceRecorder()
     private let eventSummaryLock = NSLock()
@@ -822,8 +978,13 @@ final class EventTapService: @unchecked Sendable {
         guard let mapping = mappingEngine.mapping(for: buttonNumber, config: config) else {
             return Unmanaged.passUnretained(event)
         }
-        if type == .otherMouseDown {
-            shortcutInjector.post(mapping.shortcut)
+        if type == .otherMouseUp {
+            switch mapping.action {
+            case .keyboardShortcut(let shortcut):
+                shortcutInjector.post(shortcut)
+            case .systemAction(let action):
+                systemActionRunner.trigger(action)
+            }
         }
         return nil
     }

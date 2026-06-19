@@ -284,38 +284,12 @@ public struct KeyboardShortcutDefinition: Codable, Equatable, Hashable, Identifi
 }
 
 public struct MacOSPresetShortcut: Equatable, Identifiable, Sendable {
-    static let customID = "custom"
-
     public var id: String
     var titleKey: String
     var descriptionKey: String
     var shortcut: KeyboardShortcutDefinition
 
     static let allCases: [MacOSPresetShortcut] = [
-        MacOSPresetShortcut(
-            id: "missionControl",
-            titleKey: "mapping.preset.missionControl",
-            descriptionKey: "mapping.preset.missionControl.desc",
-            shortcut: KeyboardShortcutDefinition(keyCode: 126, modifiersRawValue: CGEventFlags.maskControl.rawValue)
-        ),
-        MacOSPresetShortcut(
-            id: "applicationWindows",
-            titleKey: "mapping.preset.applicationWindows",
-            descriptionKey: "mapping.preset.applicationWindows.desc",
-            shortcut: KeyboardShortcutDefinition(keyCode: 125, modifiersRawValue: CGEventFlags.maskControl.rawValue)
-        ),
-        MacOSPresetShortcut(
-            id: "spaceLeft",
-            titleKey: "mapping.preset.spaceLeft",
-            descriptionKey: "mapping.preset.spaceLeft.desc",
-            shortcut: KeyboardShortcutDefinition(keyCode: 123, modifiersRawValue: CGEventFlags.maskControl.rawValue)
-        ),
-        MacOSPresetShortcut(
-            id: "spaceRight",
-            titleKey: "mapping.preset.spaceRight",
-            descriptionKey: "mapping.preset.spaceRight.desc",
-            shortcut: KeyboardShortcutDefinition(keyCode: 124, modifiersRawValue: CGEventFlags.maskControl.rawValue)
-        ),
         MacOSPresetShortcut(
             id: "spotlight",
             titleKey: "mapping.preset.spotlight",
@@ -362,11 +336,169 @@ public struct MacOSPresetShortcut: Equatable, Identifiable, Sendable {
     }
 }
 
+public enum SystemMappingAction: String, Codable, CaseIterable, Identifiable, Sendable {
+    case missionControl
+    case currentAppWindows
+    case spaceLeft
+    case spaceRight
+    case showDesktop
+
+    public var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .missionControl: "mapping.systemAction.missionControl"
+        case .currentAppWindows: "mapping.systemAction.currentAppWindows"
+        case .spaceLeft: "mapping.systemAction.spaceLeft"
+        case .spaceRight: "mapping.systemAction.spaceRight"
+        case .showDesktop: "mapping.systemAction.showDesktop"
+        }
+    }
+
+    var descriptionKey: String {
+        switch self {
+        case .missionControl: "mapping.systemAction.missionControl.desc"
+        case .currentAppWindows: "mapping.systemAction.currentAppWindows.desc"
+        case .spaceLeft: "mapping.systemAction.spaceLeft.desc"
+        case .spaceRight: "mapping.systemAction.spaceRight.desc"
+        case .showDesktop: "mapping.systemAction.showDesktop.desc"
+        }
+    }
+
+    var displayName: String {
+        String(localized: String.LocalizationValue(titleKey))
+    }
+
+    var fallbackShortcut: KeyboardShortcutDefinition? {
+        switch self {
+        case .spaceLeft:
+            KeyboardShortcutDefinition(keyCode: 123, modifiersRawValue: CGEventFlags.maskControl.rawValue)
+        case .spaceRight:
+            KeyboardShortcutDefinition(keyCode: 124, modifiersRawValue: CGEventFlags.maskControl.rawValue)
+        case .showDesktop:
+            KeyboardShortcutDefinition(keyCode: 4, modifiersRawValue: CGEventFlags.maskSecondaryFn.rawValue)
+        case .missionControl, .currentAppWindows:
+            nil
+        }
+    }
+}
+
+public struct MacOSSystemActionPreset: Equatable, Identifiable, Sendable {
+    public var id: String { action.rawValue }
+    var action: SystemMappingAction
+    var titleKey: String { action.titleKey }
+    var descriptionKey: String { action.descriptionKey }
+
+    static let allCases: [MacOSSystemActionPreset] = [
+        MacOSSystemActionPreset(action: .missionControl),
+        MacOSSystemActionPreset(action: .currentAppWindows),
+        MacOSSystemActionPreset(action: .spaceLeft),
+        MacOSSystemActionPreset(action: .spaceRight),
+        MacOSSystemActionPreset(action: .showDesktop)
+    ]
+
+    static func preset(id: String) -> MacOSSystemActionPreset? {
+        allCases.first { $0.id == id }
+    }
+}
+
+public enum ButtonMappingAction: Codable, Equatable, Hashable, Sendable {
+    case keyboardShortcut(KeyboardShortcutDefinition)
+    case systemAction(SystemMappingAction)
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case shortcut
+        case systemAction
+    }
+
+    private enum Kind: String, Codable {
+        case keyboardShortcut
+        case systemAction
+    }
+
+    var keyboardShortcut: KeyboardShortcutDefinition? {
+        switch self {
+        case .keyboardShortcut(let shortcut): shortcut
+        case .systemAction: nil
+        }
+    }
+
+    var systemAction: SystemMappingAction? {
+        switch self {
+        case .keyboardShortcut: nil
+        case .systemAction(let action): action
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .keyboardShortcut(let shortcut):
+            shortcut.displayName
+        case .systemAction(let action):
+            action.displayName
+        }
+    }
+
+    var isValid: Bool {
+        switch self {
+        case .keyboardShortcut(let shortcut):
+            KeyboardShortcutDefinition.supportsKeyCode(shortcut.keyCode)
+        case .systemAction:
+            true
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decodeIfPresent(Kind.self, forKey: .kind) ?? .keyboardShortcut
+        switch kind {
+        case .keyboardShortcut:
+            self = .keyboardShortcut(try container.decode(KeyboardShortcutDefinition.self, forKey: .shortcut))
+        case .systemAction:
+            self = .systemAction(try container.decode(SystemMappingAction.self, forKey: .systemAction))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .keyboardShortcut(let shortcut):
+            try container.encode(Kind.keyboardShortcut, forKey: .kind)
+            try container.encode(shortcut, forKey: .shortcut)
+        case .systemAction(let action):
+            try container.encode(Kind.systemAction, forKey: .kind)
+            try container.encode(action, forKey: .systemAction)
+        }
+    }
+}
+
 public enum ShortcutCaptureDecision: Equatable, Sendable {
     case capture(KeyboardShortcutDefinition)
     case cancel
     case clear
     case invalid
+}
+
+public enum ShortcutRecorderMode: String, CaseIterable, Identifiable, Sendable {
+    case singleChord
+    case separateKeys
+
+    public var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .singleChord: "mapping.editor.shortcut.mode.singleChord"
+        case .separateKeys: "mapping.editor.shortcut.mode.separateKeys"
+        }
+    }
+
+    var hintKey: String {
+        switch self {
+        case .singleChord: "mapping.editor.shortcut.hint"
+        case .separateKeys: "mapping.editor.shortcut.separateHint"
+        }
+    }
 }
 
 public struct ShortcutCaptureInterpreter: Sendable {
@@ -387,6 +519,109 @@ public struct ShortcutCaptureInterpreter: Sendable {
                 )
             )
         }
+    }
+
+    static func modifierFlag(for keyCode: UInt16) -> UInt64? {
+        switch keyCode {
+        case 55, 54:
+            CGEventFlags.maskCommand.rawValue
+        case 58, 61:
+            CGEventFlags.maskAlternate.rawValue
+        case 59, 62:
+            CGEventFlags.maskControl.rawValue
+        case 56, 60:
+            CGEventFlags.maskShift.rawValue
+        default:
+            nil
+        }
+    }
+}
+
+public struct ShortcutAssemblyKey: Equatable, Hashable, Sendable {
+    public enum Kind: String, Sendable {
+        case modifier
+        case key
+    }
+
+    var kind: Kind
+    var keyCode: UInt16
+    var flagRawValue: UInt64
+
+    static func modifier(keyCode: UInt16, flagRawValue: UInt64) -> ShortcutAssemblyKey {
+        ShortcutAssemblyKey(kind: .modifier, keyCode: keyCode, flagRawValue: flagRawValue)
+    }
+
+    static func key(keyCode: UInt16) -> ShortcutAssemblyKey {
+        ShortcutAssemblyKey(kind: .key, keyCode: keyCode, flagRawValue: 0)
+    }
+
+    var displayName: String {
+        switch kind {
+        case .modifier:
+            KeyboardShortcutDefinition.makeDisplayName(keyCode: keyCode, modifiersRawValue: flagRawValue)
+                .replacingOccurrences(of: KeyboardShortcutDefinition.keyName(for: keyCode), with: "")
+        case .key:
+            KeyboardShortcutDefinition.keyName(for: keyCode)
+        }
+    }
+}
+
+public enum ShortcutAssemblyAppendResult: Equatable, Sendable {
+    case inProgress
+    case complete(KeyboardShortcutDefinition)
+    case duplicate
+    case full
+    case invalid
+}
+
+public struct ShortcutKeyAssemblySession: Equatable, Sendable {
+    static let maximumKeyCount = 3
+
+    private(set) var keys: [ShortcutAssemblyKey] = []
+
+    init(keys: [ShortcutAssemblyKey] = []) {
+        self.keys = Array(keys.prefix(Self.maximumKeyCount))
+    }
+
+    var displayName: String {
+        keys.map(\.displayName).joined(separator: " + ")
+    }
+
+    var shortcut: KeyboardShortcutDefinition? {
+        let modifierFlags = keys
+            .filter { $0.kind == .modifier }
+            .reduce(UInt64(0)) { $0 | $1.flagRawValue }
+        let mainKeys = keys.filter { $0.kind == .key }
+        guard mainKeys.count == 1, let mainKey = mainKeys.first else { return nil }
+        return KeyboardShortcutDefinition(keyCode: mainKey.keyCode, modifiersRawValue: modifierFlags)
+    }
+
+    mutating func append(_ key: ShortcutAssemblyKey) -> ShortcutAssemblyAppendResult {
+        guard keys.count < Self.maximumKeyCount else { return .full }
+        switch key.kind {
+        case .modifier:
+            guard ShortcutCaptureInterpreter.modifierFlag(for: key.keyCode) == key.flagRawValue else {
+                return .invalid
+            }
+            guard keys.contains(where: { $0.kind == .modifier && $0.flagRawValue == key.flagRawValue }) == false else {
+                return .duplicate
+            }
+        case .key:
+            guard KeyboardShortcutDefinition.supportsKeyCode(key.keyCode),
+                  ShortcutCaptureInterpreter.modifierFlag(for: key.keyCode) == nil,
+                  keys.contains(where: { $0.kind == .key }) == false else {
+                return .invalid
+            }
+        }
+        keys.append(key)
+        if let shortcut {
+            return .complete(shortcut)
+        }
+        return .inProgress
+    }
+
+    mutating func clear() {
+        keys = []
     }
 }
 
@@ -449,9 +684,18 @@ public struct ButtonMapping: Codable, Equatable, Identifiable, Sendable {
     var isEnabled: Bool
     var name: String
     var mouseButtonNumber: Int
-    var shortcut: KeyboardShortcutDefinition
+    var action: ButtonMappingAction
     var scope: String
     var note: String
+
+    var shortcut: KeyboardShortcutDefinition {
+        get {
+            action.keyboardShortcut ?? KeyboardShortcutDefinition(keyCode: 0, modifiersRawValue: 0, displayName: action.displayName)
+        }
+        set {
+            action = .keyboardShortcut(newValue)
+        }
+    }
 
     init(
         id: UUID = UUID(),
@@ -466,7 +710,25 @@ public struct ButtonMapping: Codable, Equatable, Identifiable, Sendable {
         self.isEnabled = isEnabled
         self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         self.mouseButtonNumber = mouseButtonNumber
-        self.shortcut = shortcut
+        self.action = .keyboardShortcut(shortcut)
+        self.scope = scope
+        self.note = note
+    }
+
+    init(
+        id: UUID = UUID(),
+        isEnabled: Bool = true,
+        name: String = "",
+        mouseButtonNumber: Int,
+        action: ButtonMappingAction,
+        scope: String = "global",
+        note: String = ""
+    ) {
+        self.id = id
+        self.isEnabled = isEnabled
+        self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.mouseButtonNumber = mouseButtonNumber
+        self.action = action
         self.scope = scope
         self.note = note
     }
@@ -476,6 +738,7 @@ public struct ButtonMapping: Codable, Equatable, Identifiable, Sendable {
         case isEnabled
         case name
         case mouseButtonNumber
+        case action
         case shortcut
         case scope
         case note
@@ -487,20 +750,40 @@ public struct ButtonMapping: Codable, Equatable, Identifiable, Sendable {
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         name = (try container.decodeIfPresent(String.self, forKey: .name) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         mouseButtonNumber = try container.decode(Int.self, forKey: .mouseButtonNumber)
-        shortcut = try container.decode(KeyboardShortcutDefinition.self, forKey: .shortcut)
+        if let decodedAction = try container.decodeIfPresent(ButtonMappingAction.self, forKey: .action) {
+            action = decodedAction
+        } else {
+            action = .keyboardShortcut(try container.decode(KeyboardShortcutDefinition.self, forKey: .shortcut))
+        }
         scope = try container.decodeIfPresent(String.self, forKey: .scope) ?? "global"
         note = try container.decodeIfPresent(String.self, forKey: .note) ?? ""
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(name, forKey: .name)
+        try container.encode(mouseButtonNumber, forKey: .mouseButtonNumber)
+        try container.encode(action, forKey: .action)
+        if let shortcut = action.keyboardShortcut {
+            try container.encode(shortcut, forKey: .shortcut)
+        }
+        try container.encode(scope, forKey: .scope)
+        try container.encode(note, forKey: .note)
     }
 }
 
 public struct ButtonMappingListSummary: Equatable, Sendable {
     var name: String?
+    var actionDisplayName: String
     var scopeKey: String
     var note: String
 
     init(mapping: ButtonMapping) {
         let trimmedName = mapping.name.trimmingCharacters(in: .whitespacesAndNewlines)
         name = trimmedName.isEmpty ? nil : trimmedName
+        actionDisplayName = mapping.action.displayName
         scopeKey = mapping.scope == "global" ? "mapping.scope.global" : "mapping.scope.custom"
         let trimmedNote = mapping.note.trimmingCharacters(in: .whitespacesAndNewlines)
         note = trimmedNote.isEmpty ? "—" : trimmedNote
@@ -515,9 +798,23 @@ public struct ButtonMappingRiskWarning: Equatable, Sendable {
 
 public struct ButtonMappingEditorDraft: Equatable, Sendable {
     var mouseButtonNumber: Int
-    var shortcut: KeyboardShortcutDefinition?
+    var action: ButtonMappingAction?
 
-    static let newMapping = ButtonMappingEditorDraft(mouseButtonNumber: 0, shortcut: nil)
+    static let newMapping = ButtonMappingEditorDraft(mouseButtonNumber: 0, action: nil)
+
+    init(mouseButtonNumber: Int, action: ButtonMappingAction?) {
+        self.mouseButtonNumber = mouseButtonNumber
+        self.action = action
+    }
+
+    init(mouseButtonNumber: Int, shortcut: KeyboardShortcutDefinition?) {
+        self.mouseButtonNumber = mouseButtonNumber
+        action = shortcut.map { .keyboardShortcut($0) }
+    }
+
+    var shortcut: KeyboardShortcutDefinition? {
+        action?.keyboardShortcut
+    }
 
     var canRecordShortcut: Bool {
         mouseButtonNumber >= 3
@@ -528,7 +825,7 @@ public struct ButtonMappingEditorDraft: Equatable, Sendable {
     }
 
     func canSave(conflictMessageKey: String?) -> Bool {
-        canRecordShortcut && shortcut != nil && conflictMessageKey == nil
+        canRecordShortcut && action?.isValid == true && conflictMessageKey == nil
     }
 }
 
@@ -779,7 +1076,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         var seenButtons = Set<Int>()
         buttonMappings = buttonMappings.filter { mapping in
             guard mapping.mouseButtonNumber >= 3 else { return false }
-            guard KeyboardShortcutDefinition.supportsKeyCode(mapping.shortcut.keyCode) else { return false }
+            guard mapping.action.isValid else { return false }
             guard !seenButtons.contains(mapping.mouseButtonNumber) else { return false }
             seenButtons.insert(mapping.mouseButtonNumber)
             return true

@@ -72,12 +72,56 @@ struct FeatureAvailabilityNoticeBanner: View {
 struct ShortcutRecorderView: NSViewRepresentable {
     @Binding var shortcut: KeyboardShortcutDefinition?
     var isActive = true
+    var recorderMode: ShortcutRecorderMode = .singleChord
+    @Binding var assembly: ShortcutKeyAssemblySession
+    var onComplete: () -> Void = {}
     var onCancel: () -> Void = {}
+
+    init(
+        shortcut: Binding<KeyboardShortcutDefinition?>,
+        isActive: Bool = true,
+        recorderMode: ShortcutRecorderMode = .singleChord,
+        assembly: Binding<ShortcutKeyAssemblySession> = .constant(ShortcutKeyAssemblySession()),
+        onComplete: @escaping () -> Void = {},
+        onCancel: @escaping () -> Void = {}
+    ) {
+        _shortcut = shortcut
+        self.isActive = isActive
+        self.recorderMode = recorderMode
+        _assembly = assembly
+        self.onComplete = onComplete
+        self.onCancel = onCancel
+    }
 
     func makeNSView(context: Context) -> KeyCaptureView {
         let view = KeyCaptureView()
         view.isActive = isActive
+        configure(view)
+        focusIfNeeded(view)
+        return view
+    }
+
+    func updateNSView(_ nsView: KeyCaptureView, context: Context) {
+        let wasActive = nsView.isActive
+        nsView.isActive = isActive
+        configure(nsView)
+        if isActive && !wasActive {
+            focusIfNeeded(nsView)
+        }
+    }
+
+    private func configure(_ view: KeyCaptureView) {
         view.onCapture = { event in
+            handleKeyDown(event)
+        }
+        view.onModifierCapture = { event in
+            handleModifierChange(event)
+        }
+    }
+
+    private func handleKeyDown(_ event: NSEvent) {
+        switch recorderMode {
+        case .singleChord:
             let usefulFlags = event.modifierFlags.intersection([.command, .option, .control, .shift])
             let decision = ShortcutCaptureInterpreter().interpret(
                 keyCode: UInt16(event.keyCode),
@@ -93,19 +137,52 @@ struct ShortcutRecorderView: NSViewRepresentable {
             case .invalid:
                 NSSound.beep()
             }
+        case .separateKeys:
+            switch event.keyCode {
+            case 53:
+                onCancel()
+            case 51, 117:
+                assembly.clear()
+                shortcut = nil
+            default:
+                appendAssemblyKey(.key(keyCode: UInt16(event.keyCode)))
+            }
         }
-        DispatchQueue.main.async { view.window?.makeFirstResponder(view) }
-        return view
     }
 
-    func updateNSView(_ nsView: KeyCaptureView, context: Context) {
-        nsView.isActive = isActive
-        DispatchQueue.main.async { nsView.window?.makeFirstResponder(nsView) }
+    private func handleModifierChange(_ event: NSEvent) {
+        guard recorderMode == .separateKeys,
+              let flagRawValue = ShortcutCaptureInterpreter.modifierFlag(for: UInt16(event.keyCode)) else {
+            return
+        }
+        let usefulFlags = CGEventFlags(maskFrom: event.modifierFlags.intersection([.command, .option, .control, .shift]))
+        guard usefulFlags.contains(CGEventFlags(rawValue: flagRawValue)) else { return }
+        appendAssemblyKey(.modifier(keyCode: UInt16(event.keyCode), flagRawValue: flagRawValue))
+    }
+
+    private func appendAssemblyKey(_ key: ShortcutAssemblyKey) {
+        switch assembly.append(key) {
+        case .inProgress, .duplicate:
+            break
+        case .complete(let definition):
+            shortcut = definition
+            onComplete()
+        case .full, .invalid:
+            NSSound.beep()
+        }
+    }
+
+    private func focusIfNeeded(_ view: KeyCaptureView) {
+        DispatchQueue.main.async {
+            guard view.isActive else { return }
+            view.window?.makeFirstResponder(view)
+        }
     }
 }
 
 final class KeyCaptureView: NSView {
     var onCapture: ((NSEvent) -> Void)?
+    var onModifierCapture: ((NSEvent) -> Void)?
     var isActive = true
 
     override var acceptsFirstResponder: Bool { true }
@@ -113,6 +190,11 @@ final class KeyCaptureView: NSView {
     override func keyDown(with event: NSEvent) {
         guard isActive else { return }
         onCapture?(event)
+    }
+
+    override func flagsChanged(with event: NSEvent) {
+        guard isActive else { return }
+        onModifierCapture?(event)
     }
 
     override func draw(_ dirtyRect: NSRect) {

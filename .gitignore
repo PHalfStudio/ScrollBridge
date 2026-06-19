@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Xcode user state and local build output
+*.xcuserstate
+*.xcuserdata/
+xcuserdata/
+build/
+DerivedData/
+default.profraw
+
+# Local IDE state
+.idea/
+
+# AI assistant local context
+.agents/
+.codex/
+.trellis/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+QWEN.md
+.claude/
+.cursor/
+.continue/
+.windsurf/
+.aider*

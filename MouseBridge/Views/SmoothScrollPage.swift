@@ -98,10 +98,18 @@ struct SmoothScrollPage: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(appState.settings.excludedBundleIdentifiers, id: \.self) { bundleIdentifier in
-                        Text(bundleIdentifier)
-                            .font(.system(.body, design: .monospaced))
-                            .accessibilityLabel(Text(excludedAppAccessibilityLabel(for: bundleIdentifier)))
-                            .accessibilityHint(Text("excludedApps.row.accessibilityHint"))
+                        HStack {
+                            Text(bundleIdentifier)
+                                .font(.system(.body, design: .monospaced))
+                                .accessibilityLabel(Text(excludedAppAccessibilityLabel(for: bundleIdentifier)))
+                                .accessibilityHint(Text("excludedApps.row.accessibilityHint"))
+                            Spacer()
+                            Button("excludedApps.delete", role: .destructive) {
+                                appState.removeExcludedBundleIdentifier(bundleIdentifier)
+                            }
+                            .accessibilityLabel(Text("excludedApps.delete"))
+                            .accessibilityHint(Text("excludedApps.delete.hint"))
+                        }
                     }
                     .onDelete { offsets in
                         appState.removeExcludedBundleIdentifiers(at: offsets)

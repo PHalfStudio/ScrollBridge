@@ -4,7 +4,7 @@
 
 - Debug build（调试构建）：通过。
 - Release build（发布构建）：通过。
-- Core unit tests（核心单元测试）：135 项通过。
+- Core unit tests（核心单元测试）：143 项通过。
 - UI smoke test target build（界面冒烟测试目标构建）：通过，已纳入共享 scheme（方案）。
 - UI automation run（界面自动化运行）：2026-06-19 尝试运行 MouseBridgeUITests（界面测试目标），约 149 秒后停在测试启动与日志归集阶段，结果为 TEST INTERRUPTED（测试被中断），未计为通过。
 - Codesign verify（签名校验）：通过。

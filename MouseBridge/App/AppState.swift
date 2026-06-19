@@ -185,6 +185,12 @@ final class AppState: ObservableObject {
         }
     }
 
+    func removeExcludedBundleIdentifier(_ bundleIdentifier: String) {
+        updateSettings { settings in
+            settings.excludedBundleIdentifiers.removeAll { $0 == bundleIdentifier }
+        }
+    }
+
     func setDeviceOverride(deviceID: String, kind: InputDeviceKind) {
         updateSettings { settings in
             settings.deviceOverrides[deviceID] = kind

@@ -33,7 +33,7 @@ struct ButtonMappingPage: View {
                         let buttonTitle = String(format: NSLocalizedString("mapping.buttonFormat", comment: ""), mapping.mouseButtonNumber)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(summary.name ?? buttonTitle)
-                            Text(summary.name == nil ? mapping.shortcut.displayName : "\(buttonTitle) · \(mapping.shortcut.displayName)")
+                            Text(summary.name == nil ? summary.actionDisplayName : "\(buttonTitle) · \(summary.actionDisplayName)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             HStack(spacing: 10) {
@@ -63,6 +63,14 @@ struct ButtonMappingPage: View {
                 }
             }
             .frame(minHeight: 240)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(.white.opacity(0.16), lineWidth: 1)
+            }
 
             HStack {
                 Button {
@@ -99,7 +107,7 @@ struct ButtonMappingPage: View {
         return String(
             format: format,
             mapping.mouseButtonNumber,
-            mapping.shortcut.displayName,
+            summary.actionDisplayName,
             NSLocalizedString(summary.scopeKey, comment: ""),
             summary.note
         )
@@ -114,8 +122,12 @@ struct MappingEditorSheet: View {
     @State private var isEnabled: Bool
     @State private var name: String
     @State private var mouseButtonNumber: Int
+    @State private var actionSelection: MappingEditorActionSelection
     @State private var shortcut: KeyboardShortcutDefinition?
     @State private var presetShortcutID: String
+    @State private var systemActionID: String
+    @State private var shortcutRecorderMode: ShortcutRecorderMode
+    @State private var shortcutAssembly: ShortcutKeyAssemblySession
     @State private var scope: String
     @State private var note: String
     @State private var recordingSession: ShortcutRecordingSession
@@ -128,10 +140,17 @@ struct MappingEditorSheet: View {
         _mappingID = State(initialValue: mapping?.id ?? UUID())
         _isEnabled = State(initialValue: mapping?.isEnabled ?? true)
         _name = State(initialValue: mapping?.name ?? "")
-        let draft = mapping.map { ButtonMappingEditorDraft(mouseButtonNumber: $0.mouseButtonNumber, shortcut: $0.shortcut) } ?? .newMapping
+        let draft = mapping.map { ButtonMappingEditorDraft(mouseButtonNumber: $0.mouseButtonNumber, action: $0.action) } ?? .newMapping
+        let keyboardShortcut = draft.action?.keyboardShortcut
+        let matchedPresetID = keyboardShortcut.flatMap { MacOSPresetShortcut.preset(matching: $0)?.id }
+        let systemAction = draft.action?.systemAction
         _mouseButtonNumber = State(initialValue: draft.mouseButtonNumber)
-        _shortcut = State(initialValue: draft.shortcut)
-        _presetShortcutID = State(initialValue: draft.shortcut.flatMap { MacOSPresetShortcut.preset(matching: $0)?.id } ?? MacOSPresetShortcut.customID)
+        _actionSelection = State(initialValue: systemAction != nil ? .systemAction : (matchedPresetID != nil ? .presetShortcut : .manualRecord))
+        _shortcut = State(initialValue: keyboardShortcut)
+        _presetShortcutID = State(initialValue: matchedPresetID ?? MacOSPresetShortcut.allCases.first?.id ?? "spotlight")
+        _systemActionID = State(initialValue: systemAction?.rawValue ?? MacOSSystemActionPreset.allCases.first?.id ?? SystemMappingAction.missionControl.rawValue)
+        _shortcutRecorderMode = State(initialValue: .singleChord)
+        _shortcutAssembly = State(initialValue: ShortcutKeyAssemblySession())
         _scope = State(initialValue: mapping?.scope ?? "global")
         _note = State(initialValue: mapping?.note ?? "")
         _recordingSession = State(initialValue: ShortcutRecordingSession(startedAt: initialDate))
@@ -143,10 +162,8 @@ struct MappingEditorSheet: View {
         let isMouseButtonRecording = mouseButtonRecordingSession?.isActive(at: now) == true
         let conflictMessageKey = currentConflictMessageKey
         let canRecordShortcut = currentDraft.canRecordShortcut
-        let isRecording = presetShortcutID == MacOSPresetShortcut.customID && focusedTextField == nil && canRecordShortcut && recordingSession.isActive(at: now)
-        let shortcutHintKey = presetShortcutID == MacOSPresetShortcut.customID
-            ? (canRecordShortcut ? (isRecording ? "mapping.editor.shortcut.hint" : "mapping.editor.shortcut.timeout") : "mapping.editor.shortcut.waitForMouseButton")
-            : "mapping.editor.shortcut.presetSelected"
+        let isRecording = actionSelection == .manualRecord && focusedTextField == nil && canRecordShortcut && recordingSession.isActive(at: now)
+        let shortcutHintKey = manualShortcutHintKey(isRecording: isRecording, canRecordShortcut: canRecordShortcut)
         VStack(alignment: .leading, spacing: 18) {
             Text("mapping.editor.title")
                 .font(.title2.weight(.semibold))
@@ -194,42 +211,93 @@ struct MappingEditorSheet: View {
                     .foregroundStyle(.red)
             }
             VStack(alignment: .leading, spacing: 8) {
-                Picker("mapping.editor.presetShortcut", selection: $presetShortcutID) {
-                    Text("mapping.editor.presetShortcut.custom").tag(MacOSPresetShortcut.customID)
-                    ForEach(MacOSPresetShortcut.allCases) { preset in
-                        Text(LocalizedStringKey(preset.titleKey)).tag(preset.id)
-                    }
+                Picker("mapping.editor.actionType", selection: $actionSelection) {
+                    Text("mapping.editor.actionType.manualRecord").tag(MappingEditorActionSelection.manualRecord)
+                    Text("mapping.editor.actionType.presetShortcut").tag(MappingEditorActionSelection.presetShortcut)
+                    Text("mapping.editor.actionType.systemAction").tag(MappingEditorActionSelection.systemAction)
                 }
-                .accessibilityLabel(Text("mapping.editor.presetShortcut"))
-                .accessibilityHint(Text("mapping.editor.presetShortcut.hint"))
-                Text(LocalizedStringKey(selectedPresetDescriptionKey))
+                .accessibilityLabel(Text("mapping.editor.actionType"))
+                .accessibilityHint(Text("mapping.editor.actionType.hint"))
+                Text(LocalizedStringKey(actionSelection.descriptionKey))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            if actionSelection == .presetShortcut {
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("mapping.editor.presetShortcut", selection: $presetShortcutID) {
+                        ForEach(MacOSPresetShortcut.allCases) { preset in
+                            Text(LocalizedStringKey(preset.titleKey)).tag(preset.id)
+                        }
+                    }
+                    .accessibilityLabel(Text("mapping.editor.presetShortcut"))
+                    .accessibilityHint(Text("mapping.editor.presetShortcut.hint"))
+                    Text(LocalizedStringKey(selectedPresetDescriptionKey))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if actionSelection == .systemAction {
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("mapping.editor.systemAction", selection: $systemActionID) {
+                        ForEach(MacOSSystemActionPreset.allCases) { preset in
+                            Text(LocalizedStringKey(preset.titleKey)).tag(preset.id)
+                        }
+                    }
+                    .accessibilityLabel(Text("mapping.editor.systemAction"))
+                    .accessibilityHint(Text("mapping.editor.systemAction.hint"))
+                    Text(LocalizedStringKey(selectedSystemActionDescriptionKey))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if actionSelection == .manualRecord {
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("mapping.editor.shortcut.recordingMode", selection: $shortcutRecorderMode) {
+                        ForEach(ShortcutRecorderMode.allCases) { mode in
+                            Text(LocalizedStringKey(mode.titleKey)).tag(mode)
+                        }
+                    }
+                    .accessibilityLabel(Text("mapping.editor.shortcut.recordingMode"))
+                    .accessibilityHint(Text("mapping.editor.shortcut.recordingMode.hint"))
+                }
+            }
             VStack(alignment: .leading, spacing: 8) {
-                Text("mapping.editor.shortcut")
+                Text(actionSelection == .systemAction ? "mapping.editor.systemAction" : "mapping.editor.shortcut")
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.quaternary)
-                    Text(shortcut?.displayName ?? "—")
+                    Text(actionDisplayText)
                         .font(.title3.monospaced())
-                    ShortcutRecorderView(shortcut: $shortcut, isActive: isRecording) {
-                        cancelShortcutRecording()
+                    if actionSelection == .manualRecord {
+                        ShortcutRecorderView(
+                            shortcut: $shortcut,
+                            isActive: isRecording,
+                            recorderMode: shortcutRecorderMode,
+                            assembly: $shortcutAssembly,
+                            onComplete: {
+                                cancelShortcutRecording()
+                            },
+                            onCancel: {
+                                cancelShortcutRecording()
+                            }
+                        )
+                            .frame(height: 54)
+                            .accessibilityLabel(Text("mapping.editor.shortcut.capture"))
+                            .accessibilityHint(Text("mapping.editor.shortcut.captureHint"))
                     }
-                        .frame(height: 54)
-                        .accessibilityLabel(Text("mapping.editor.shortcut.capture"))
-                        .accessibilityHint(Text("mapping.editor.shortcut.captureHint"))
                 }
                 .frame(height: 54)
                 Text(LocalizedStringKey(shortcutHintKey))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Button("mapping.editor.rerecord") {
-                    restartRecording()
+                if actionSelection == .manualRecord {
+                    Button("mapping.editor.rerecord") {
+                        restartRecording(clearAssembly: true)
+                    }
+                    .accessibilityLabel(Text("mapping.editor.rerecord"))
+                    .accessibilityHint(Text("mapping.editor.rerecord.hint"))
+                    .disabled(!canRecordShortcut)
                 }
-                .accessibilityLabel(Text("mapping.editor.rerecord"))
-                .accessibilityHint(Text("mapping.editor.rerecord.hint"))
-                .disabled(!canRecordShortcut)
             }
             HStack {
                 Text("mapping.editor.scope")
@@ -263,13 +331,22 @@ struct MappingEditorSheet: View {
             captureMouseButton(from: event)
         }
         .onChange(of: mouseButtonNumber) { oldValue, newValue in
-            let previousDraft = ButtonMappingEditorDraft(mouseButtonNumber: oldValue, shortcut: shortcut)
-            if presetShortcutID == MacOSPresetShortcut.customID && previousDraft.shouldRestartShortcutRecording(afterChangingMouseButtonTo: newValue) {
-                restartRecording()
+            let previousDraft = ButtonMappingEditorDraft(mouseButtonNumber: oldValue, action: currentAction)
+            if actionSelection == .manualRecord && previousDraft.shouldRestartShortcutRecording(afterChangingMouseButtonTo: newValue) {
+                restartRecording(clearAssembly: true)
             }
+        }
+        .onChange(of: actionSelection) { _, newValue in
+            applyActionSelection(newValue)
         }
         .onChange(of: presetShortcutID) { _, newValue in
             applyPresetShortcutSelection(newValue)
+        }
+        .onChange(of: systemActionID) { _, newValue in
+            applySystemActionSelection(newValue)
+        }
+        .onChange(of: shortcutRecorderMode) { _, _ in
+            resetManualShortcutRecording()
         }
         .onChange(of: focusedTextField) { _, newValue in
             handleTextFieldFocusChange(newValue)
@@ -277,14 +354,14 @@ struct MappingEditorSheet: View {
     }
 
     private func save() {
-        guard let shortcut else { return }
+        guard let action = currentAction else { return }
         guard currentDraft.canSave(conflictMessageKey: currentConflictMessageKey) else { return }
         let mapping = ButtonMapping(
             id: mappingID,
             isEnabled: isEnabled,
             name: name,
             mouseButtonNumber: mouseButtonNumber,
-            shortcut: shortcut,
+            action: action,
             scope: scope,
             note: note
         )
@@ -294,13 +371,13 @@ struct MappingEditorSheet: View {
     }
 
     private var currentConflictMessageKey: String? {
-        guard let shortcut else { return nil }
+        guard let action = currentAction else { return nil }
         let mapping = ButtonMapping(
             id: mappingID,
             isEnabled: isEnabled,
             name: name,
             mouseButtonNumber: mouseButtonNumber,
-            shortcut: shortcut,
+            action: action,
             scope: scope,
             note: note
         )
@@ -308,36 +385,100 @@ struct MappingEditorSheet: View {
     }
 
     private var currentDraft: ButtonMappingEditorDraft {
-        ButtonMappingEditorDraft(mouseButtonNumber: mouseButtonNumber, shortcut: shortcut)
+        ButtonMappingEditorDraft(mouseButtonNumber: mouseButtonNumber, action: currentAction)
+    }
+
+    private var currentAction: ButtonMappingAction? {
+        switch actionSelection {
+        case .manualRecord:
+            shortcut.map { .keyboardShortcut($0) }
+        case .presetShortcut:
+            MacOSPresetShortcut.preset(id: presetShortcutID).map { .keyboardShortcut($0.shortcut) }
+        case .systemAction:
+            MacOSSystemActionPreset.preset(id: systemActionID).map { .systemAction($0.action) }
+        }
+    }
+
+    private var actionDisplayText: String {
+        if actionSelection == .manualRecord, shortcut == nil, !shortcutAssembly.keys.isEmpty {
+            return shortcutAssembly.displayName
+        }
+        return currentAction?.displayName ?? "—"
     }
 
     private var selectedPresetDescriptionKey: String {
-        MacOSPresetShortcut.preset(id: presetShortcutID)?.descriptionKey ?? "mapping.editor.presetShortcut.custom.desc"
+        MacOSPresetShortcut.preset(id: presetShortcutID)?.descriptionKey ?? "mapping.editor.presetShortcut.empty"
+    }
+
+    private var selectedSystemActionDescriptionKey: String {
+        MacOSSystemActionPreset.preset(id: systemActionID)?.descriptionKey ?? "mapping.editor.systemAction.empty"
+    }
+
+    private func manualShortcutHintKey(isRecording: Bool, canRecordShortcut: Bool) -> String {
+        switch actionSelection {
+        case .manualRecord:
+            guard canRecordShortcut else { return "mapping.editor.shortcut.waitForMouseButton" }
+            return isRecording ? shortcutRecorderMode.hintKey : "mapping.editor.shortcut.timeout"
+        case .presetShortcut:
+            return "mapping.editor.shortcut.presetSelected"
+        case .systemAction:
+            return "mapping.editor.systemAction.selected"
+        }
+    }
+
+    private func applyActionSelection(_ selection: MappingEditorActionSelection) {
+        switch selection {
+        case .manualRecord:
+            resetManualShortcutRecording()
+        case .presetShortcut:
+            applyPresetShortcutSelection(presetShortcutID)
+        case .systemAction:
+            applySystemActionSelection(systemActionID)
+        }
     }
 
     private func applyPresetShortcutSelection(_ id: String) {
         if let preset = MacOSPresetShortcut.preset(id: id) {
             shortcut = preset.shortcut
+            shortcutAssembly.clear()
             cancelShortcutRecording()
-        } else {
-            shortcut = nil
-            if currentDraft.canRecordShortcut {
-                restartRecording()
-            } else {
-                cancelShortcutRecording()
-            }
         }
+    }
+
+    private func applySystemActionSelection(_ id: String) {
+        guard MacOSSystemActionPreset.preset(id: id) != nil else { return }
+        shortcut = nil
+        shortcutAssembly.clear()
+        cancelShortcutRecording()
     }
 
     private func handleTextFieldFocusChange(_ focusedField: MappingEditorFocusedField?) {
         if focusedField != nil {
             cancelShortcutRecording()
-        } else if presetShortcutID == MacOSPresetShortcut.customID && currentDraft.canRecordShortcut && shortcut == nil {
-            restartRecording()
+        } else if actionSelection == .manualRecord && currentDraft.canRecordShortcut && shortcut == nil {
+            restartRecording(clearAssembly: false)
+        }
+    }
+
+    private func resetManualShortcutRecording() {
+        shortcut = nil
+        shortcutAssembly.clear()
+        if currentDraft.canRecordShortcut {
+            restartRecording(clearAssembly: false)
+        } else {
+            cancelShortcutRecording()
         }
     }
 
     private func restartRecording() {
+        restartRecording(clearAssembly: true)
+    }
+
+    private func restartRecording(clearAssembly: Bool) {
+        if clearAssembly {
+            shortcut = nil
+            shortcutAssembly.clear()
+        }
         let date = Date()
         recordingSession = recordingSession.restarted(at: date)
         now = date
@@ -373,4 +514,23 @@ struct MappingEditorSheet: View {
 private enum MappingEditorFocusedField: Hashable {
     case name
     case note
+}
+
+private enum MappingEditorActionSelection: String, CaseIterable, Identifiable {
+    case manualRecord
+    case presetShortcut
+    case systemAction
+
+    var id: String { rawValue }
+
+    var descriptionKey: String {
+        switch self {
+        case .manualRecord:
+            "mapping.editor.actionType.manualRecord.desc"
+        case .presetShortcut:
+            "mapping.editor.actionType.presetShortcut.desc"
+        case .systemAction:
+            "mapping.editor.actionType.systemAction.desc"
+        }
+    }
 }

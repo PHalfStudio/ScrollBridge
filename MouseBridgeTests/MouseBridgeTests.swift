@@ -141,7 +141,7 @@ struct MouseBridgeCoreTests {
         #expect(values["zh-Hans"] == "ScrollBridge 应用图标")
     }
 
-    @Test func settingsAboutPageKeepsScrollContentBelowToolbar() throws {
+    @Test func settingsAboutPageDoesNotAddToolbarTopPadding() throws {
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
             .deletingLastPathComponent()
@@ -154,7 +154,7 @@ struct MouseBridgeCoreTests {
 
         #expect(aboutSource.contains("init(toolbarSafeAreaTopPadding: CGFloat = 0)"))
         #expect(aboutSource.contains("private let toolbarSafeAreaTopPadding: CGFloat"))
-        #expect(aboutSource.contains(#".padding(.top, toolbarSafeAreaTopPadding)"#))
+        #expect(aboutSource.contains(#".padding(.top, toolbarSafeAreaTopPadding)"#) == false)
         #expect(settingsSource.contains("AboutPage(toolbarSafeAreaTopPadding: 72)"))
     }
 
@@ -325,6 +325,28 @@ struct MouseBridgeCoreTests {
         #expect(labelValues["zh-Hans"] == "已排除 App：%@")
         #expect(hintValues["en"] == "Scroll and button mapping stay unchanged while this app is active.")
         #expect(hintValues["zh-Hans"] == "当前台 App 是这一项时，滚动和按键映射保持原样。")
+    }
+
+    @Test func excludedAppsRowsExposeDeleteButton() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pageURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("SmoothScrollPage.swift")
+        let source = try String(contentsOf: pageURL, encoding: .utf8)
+        let labelValues = try localizedStringValues(for: "excludedApps.delete")
+        let hintValues = try localizedStringValues(for: "excludedApps.delete.hint")
+
+        #expect(source.contains(#"Button("excludedApps.delete", role: .destructive)"#))
+        #expect(source.contains("appState.removeExcludedBundleIdentifier(bundleIdentifier)"))
+        #expect(source.contains(#".accessibilityHint(Text("excludedApps.delete.hint"))"#))
+        #expect(labelValues["en"] == "Delete")
+        #expect(labelValues["zh-Hans"] == "删除")
+        #expect(hintValues["en"] == "Remove this app from the exclusion list.")
+        #expect(hintValues["zh-Hans"] == "从排除列表中移除这个 App。")
     }
 
     @Test func excludedAppsCanBeAddedByChoosingInstalledApplication() throws {
@@ -569,6 +591,23 @@ struct MouseBridgeCoreTests {
         #expect(deleteHint["zh-Hans"] == "删除这个按键映射。")
         #expect(useLastHint["en"] == "Use the most recently detected mouse button for this mapping.")
         #expect(useLastHint["zh-Hans"] == "将最近检测到的鼠标按键用于这个映射。")
+    }
+
+    @Test func buttonMappingListUsesRoundedContainer() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pageURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("ButtonMappingPage.swift")
+        let source = try String(contentsOf: pageURL, encoding: .utf8)
+
+        #expect(source.contains(".listStyle(.plain)"))
+        #expect(source.contains(".scrollContentBackground(.hidden)"))
+        #expect(source.contains(".clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))"))
+        #expect(source.contains("RoundedRectangle(cornerRadius: 16, style: .continuous)"))
     }
 
     @Test func buttonMappingTogglesExposeVoiceOverLabelsAndHints() throws {
@@ -1283,7 +1322,7 @@ struct MouseBridgeCoreTests {
         #expect(source.contains(#"restartRecording()"#))
     }
 
-    @Test func macOSPresetShortcutsIncludeCommonGlobalAndWindowActions() throws {
+    @Test func macOSPresetShortcutsSeparateKeyboardShortcutsFromSystemActions() throws {
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
             .deletingLastPathComponent()
@@ -1295,24 +1334,66 @@ struct MouseBridgeCoreTests {
         let source = try String(contentsOf: modelsURL, encoding: .utf8)
 
         #expect(source.contains("struct MacOSPresetShortcut"))
-        #expect(source.contains(#"id: "missionControl""#))
-        #expect(source.contains(#"id: "applicationWindows""#))
-        #expect(source.contains(#"id: "spaceLeft""#))
-        #expect(source.contains(#"id: "spaceRight""#))
+        #expect(source.contains("enum SystemMappingAction"))
+        #expect(source.contains("struct MacOSSystemActionPreset"))
         #expect(source.contains(#"id: "spotlight""#))
+        #expect(source.contains(#"id: "appSwitcher""#))
+        #expect(source.contains(#"id: "hideApp""#))
+        #expect(source.contains(#"id: "minimizeWindow""#))
         #expect(source.contains(#"id: "screenshotSelection""#))
-        #expect(source.contains("KeyboardShortcutDefinition(keyCode: 126, modifiersRawValue: CGEventFlags.maskControl.rawValue)"))
+        #expect(source.contains(#"action: .missionControl"#))
+        #expect(source.contains(#"action: .currentAppWindows"#))
+        #expect(source.contains(#"action: .spaceLeft"#))
+        #expect(source.contains(#"action: .spaceRight"#))
+        #expect(source.contains(#"action: .showDesktop"#))
+        #expect(source.contains("case showDesktop"))
+        #expect(source.contains("KeyboardShortcutDefinition(keyCode: 126, modifiersRawValue: CGEventFlags.maskControl.rawValue)") == false)
         #expect(source.contains("static func preset(matching shortcut: KeyboardShortcutDefinition)"))
 
-        let titleValues = try localizedStringValues(for: "mapping.preset.missionControl")
-        let descriptionValues = try localizedStringValues(for: "mapping.preset.missionControl.desc")
+        let titleValues = try localizedStringValues(for: "mapping.systemAction.missionControl")
+        let descriptionValues = try localizedStringValues(for: "mapping.systemAction.missionControl.desc")
         #expect(titleValues["en"] == "Mission Control")
         #expect(titleValues["zh-Hans"] == "调度中心")
-        #expect(descriptionValues["en"] == "Show all windows with Control-Up.")
-        #expect(descriptionValues["zh-Hans"] == "使用 Control-↑ 查看全部窗口。")
+        #expect(descriptionValues["en"] == "Open Mission Control through the system Exposé service.")
+        #expect(descriptionValues["zh-Hans"] == "通过系统 Exposé 服务打开调度中心。")
+
+        let desktopTitleValues = try localizedStringValues(for: "mapping.systemAction.showDesktop")
+        let desktopDescriptionValues = try localizedStringValues(for: "mapping.systemAction.showDesktop.desc")
+        #expect(desktopTitleValues["en"] == "Show Desktop")
+        #expect(desktopTitleValues["zh-Hans"] == "显示桌面")
+        #expect(desktopDescriptionValues["en"] == "Show the desktop with the macOS Fn-H shortcut.")
+        #expect(desktopDescriptionValues["zh-Hans"] == "使用 macOS Fn-H 快捷键显示桌面。")
     }
 
-    @Test func buttonMappingEditorPresetPickerAppliesShortcutWithoutRecording() throws {
+    @Test func systemActionRunnerUsesFunctionHForShowDesktop() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let serviceURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Services")
+            .appendingPathComponent("EventEngines.swift")
+        let source = try String(contentsOf: serviceURL, encoding: .utf8)
+        let expectedShortcut = KeyboardShortcutDefinition(
+            keyCode: 4,
+            modifiersRawValue: CGEventFlags.maskSecondaryFn.rawValue
+        )
+        let plan = ShortcutEventPlanner().plan(for: expectedShortcut)
+
+        #expect(source.contains("case .showDesktop:"))
+        #expect(source.contains(#"fallbackShortcutPoster(fallbackShortcut)"#))
+        #expect(source.contains(#"postDistributed("com.apple.showdesktop.awake")"#) == false)
+        #expect(SystemMappingAction.showDesktop.fallbackShortcut == expectedShortcut)
+        #expect(plan.map(\.keyCode) == [4, 4])
+        #expect(plan.map(\.keyDown) == [true, false])
+        #expect(plan.map(\.flagsRawValue) == [
+            CGEventFlags.maskSecondaryFn.rawValue,
+            CGEventFlags.maskSecondaryFn.rawValue
+        ])
+    }
+
+    @Test func buttonMappingEditorSeparatesManualPresetAndSystemActionSelection() throws {
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
             .deletingLastPathComponent()
@@ -1322,18 +1403,51 @@ struct MouseBridgeCoreTests {
             .appendingPathComponent("Views")
             .appendingPathComponent("ButtonMappingPage.swift")
         let source = try String(contentsOf: pageURL, encoding: .utf8)
-        let pickerValues = try localizedStringValues(for: "mapping.editor.presetShortcut")
-        let customValues = try localizedStringValues(for: "mapping.editor.presetShortcut.custom")
+        let actionTypeValues = try localizedStringValues(for: "mapping.editor.actionType")
+        let presetValues = try localizedStringValues(for: "mapping.editor.actionType.presetShortcut")
+        let systemValues = try localizedStringValues(for: "mapping.editor.actionType.systemAction")
 
+        #expect(source.contains(#"Picker("mapping.editor.actionType", selection: $actionSelection)"#))
+        #expect(source.contains("MappingEditorActionSelection.manualRecord"))
+        #expect(source.contains("MappingEditorActionSelection.presetShortcut"))
+        #expect(source.contains("MappingEditorActionSelection.systemAction"))
         #expect(source.contains(#"Picker("mapping.editor.presetShortcut", selection: $presetShortcutID)"#))
+        #expect(source.contains(#"Picker("mapping.editor.systemAction", selection: $systemActionID)"#))
         #expect(source.contains("MacOSPresetShortcut.allCases"))
+        #expect(source.contains("MacOSSystemActionPreset.allCases"))
         #expect(source.contains("applyPresetShortcutSelection"))
+        #expect(source.contains("applySystemActionSelection"))
         #expect(source.contains("cancelShortcutRecording()"))
-        #expect(source.contains(#"presetShortcutID == MacOSPresetShortcut.customID"#))
-        #expect(pickerValues["en"] == "Preset shortcut")
-        #expect(pickerValues["zh-Hans"] == "预制快捷键")
-        #expect(customValues["en"] == "Record manually")
-        #expect(customValues["zh-Hans"] == "手动录制")
+        #expect(source.contains(#"presetShortcutID == MacOSPresetShortcut.customID"#) == false)
+        #expect(actionTypeValues["en"] == "Action type")
+        #expect(actionTypeValues["zh-Hans"] == "动作类型")
+        #expect(presetValues["en"] == "Preset keyboard shortcut")
+        #expect(presetValues["zh-Hans"] == "预制键盘快捷键")
+        #expect(systemValues["en"] == "System action")
+        #expect(systemValues["zh-Hans"] == "系统动作")
+    }
+
+    @Test func separateShortcutRecordingBuildsShortcutFromThreeIndependentKeys() {
+        var session = ShortcutKeyAssemblySession()
+        #expect(session.append(.modifier(keyCode: 55, flagRawValue: CGEventFlags.maskCommand.rawValue)) == .inProgress)
+        #expect(session.append(.modifier(keyCode: 56, flagRawValue: CGEventFlags.maskShift.rawValue)) == .inProgress)
+        #expect(session.append(.key(keyCode: 21)) == .complete(KeyboardShortcutDefinition(
+            keyCode: 21,
+            modifiersRawValue: CGEventFlags([.maskCommand, .maskShift]).rawValue
+        )))
+        #expect(session.keys.count == 3)
+        #expect(session.append(.key(keyCode: 8)) == .full)
+    }
+
+    @Test func buttonMappingsCanStoreSystemActionsSeparatelyFromKeyboardShortcuts() throws {
+        let systemMapping = ButtonMapping(mouseButtonNumber: 6, action: .systemAction(.missionControl))
+        #expect(systemMapping.action == .systemAction(.missionControl))
+        #expect(systemMapping.action.displayName == String(localized: "mapping.systemAction.missionControl"))
+        #expect(systemMapping.action.keyboardShortcut == nil)
+
+        let encoded = try JSONEncoder().encode(systemMapping)
+        let decoded = try JSONDecoder().decode(ButtonMapping.self, from: encoded)
+        #expect(decoded.action == .systemAction(.missionControl))
     }
 
     @Test func buttonMappingEditorTextFieldsSuspendShortcutRecording() throws {
@@ -1353,6 +1467,22 @@ struct MouseBridgeCoreTests {
         #expect(source.contains("focusedTextField == nil"))
         #expect(source.contains(#".onChange(of: focusedTextField)"#))
         #expect(source.contains("handleTextFieldFocusChange"))
+    }
+
+    @Test func shortcutRecorderOnlyTakesFocusWhileRecordingIsActive() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sharedViewsURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("SharedViews.swift")
+        let source = try String(contentsOf: sharedViewsURL, encoding: .utf8)
+
+        #expect(source.contains("focusIfNeeded(view)"))
+        #expect(source.contains("guard view.isActive else { return }"))
+        #expect(source.contains(#"DispatchQueue.main.async { view.window?.makeFirstResponder(view) }"#) == false)
     }
 
     @Test func sameShortcutCanBeUsedByDifferentMouseButtons() {
@@ -1475,6 +1605,36 @@ struct MouseBridgeCoreTests {
         #expect(plan[2].isMainKey)
         #expect(plan[3].isMainKey)
         #expect(plan.last?.flagsRawValue == 0)
+    }
+
+    @Test func keyboardShortcutInjectorUsesHIDProfileForSystemShortcuts() {
+        let profile = ShortcutPostingProfile.globalKeyboardShortcut
+        #expect(profile.sourceStateID == .hidSystemState)
+        #expect(profile.tapLocation == .cghidEventTap)
+        #expect(profile.interEventDelayMicroseconds == 10_000)
+    }
+
+    @Test func controlShortcutsUseKeyboardEventsAfterMouseButtonRelease() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let serviceURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Services")
+            .appendingPathComponent("EventEngines.swift")
+        let source = try String(contentsOf: serviceURL, encoding: .utf8)
+        let missionControl = KeyboardShortcutDefinition(keyCode: 126, modifiersRawValue: CGEventFlags.maskControl.rawValue)
+        let plan = ShortcutEventPlanner().plan(for: missionControl)
+
+        #expect(plan.map(\.keyCode) == [59, 126, 126, 59])
+        #expect(source.contains("SystemShortcutResolver") == false)
+        #expect(source.contains("case .keyboardShortcut(let shortcut):"))
+        #expect(source.contains("case .systemAction(let action):"))
+        #expect(source.contains("SystemActionRunner"))
+        #expect(source.contains("if type == .otherMouseUp"))
+        #expect(source.contains("usleep(postingProfile.interEventDelayMicroseconds)"))
+        #expect(source.contains("if type == .otherMouseDown {\n            shortcutInjector.post") == false)
     }
 
     @Test func eventTapRecoveryRetriesTimeoutAndUserInputDisables() {
