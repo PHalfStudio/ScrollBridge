@@ -203,11 +203,14 @@ final class StatusItemController: NSObject {
             .environmentObject(appState)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = localized("window.settings")
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
         window.contentView = NSHostingView(rootView: view)
         window.minSize = NSSize(width: 760, height: 500)
         window.center()

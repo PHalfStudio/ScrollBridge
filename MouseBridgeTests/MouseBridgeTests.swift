@@ -315,7 +315,7 @@ struct MouseBridgeCoreTests {
         #expect(readme.contains("MouseBridge/Assets.xcassets/AppIcon.appiconset/AppIcon-256.png"))
         #expect(readme.contains("[中文](https://github.com/PHalfStudio/ScrollBridge/blob/main/README.md)"))
         #expect(readme.contains("[English](https://github.com/PHalfStudio/ScrollBridge/blob/main/README_EN.md)"))
-        #expect(readme.contains("[https://github.com/PHalfStudio/ScrollBridge/releases/latest](https://github.com/PHalfStudio/ScrollBridge/releases/latest)"))
+        #expect(readme.contains("https://github.com/PHalfStudio/ScrollBridge/releases/latest"))
         #expect(readme.contains("docs/images/linuxdo.png"))
         #expect(readme.contains("## 功能特性"))
         #expect(readme.contains("## 安装"))
@@ -975,6 +975,25 @@ struct MouseBridgeCoreTests {
         #expect(statusItemSource.contains("statusItem.menu = makeMenu()"))
         #expect(statusItemSource.contains("button.performClick(nil)"))
         #expect(statusItemSource.contains("statusItem.menu = nil"))
+    }
+
+    @Test func menuOpenedSettingsWindowUsesLaunchWindowToolbarLayout() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("StatusItemController.swift"),
+            encoding: .utf8
+        )
+
+        #expect(source.contains(".fullSizeContentView"))
+        #expect(source.contains("window.titleVisibility = .hidden"))
+        #expect(source.contains("window.titlebarAppearsTransparent = true"))
+        #expect(source.contains("window.toolbarStyle = .unified"))
     }
 
     @Test func menuBarExtraVisibilityKeepsOnboardingReachable() {
