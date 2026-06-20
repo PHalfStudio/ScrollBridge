@@ -38,7 +38,7 @@ ScrollBridge 是一个原生 macOS 菜单栏 App，面向同时使用普通鼠�
 
 请前往 GitHub Releases 下载最新版本：
 
-[https://github.com/PHalfStudio/ScrollBridge/releases/latest](https://github.com/PHalfStudio/ScrollBridge/releases/latest)
+[latest](https://github.com/PHalfStudio/ScrollBridge/releases/latest)
 
 使用方式：
 
@@ -100,16 +100,11 @@ DYLD_FALLBACK_LIBRARY_PATH=/tmp/MouseBridgeUnitDerivedData/Build/Products/Debug/
 
 ## 许可证
 
-开源许可见：[LICENSES.md](https://sites.phalfstudio.cn/scroll-bridge-license)。
+开源许可见：[LICENSES](https://sites.phalfstudio.cn/scroll-bridge-license)。
 
 ## 致谢与友链
 
 ScrollBridge 参考了 Mac Mouse Fix、Scroll Reverser、Mos、LinearMouse 和 Karabiner-Elements 等项目的公开设计经验。
 
-友链：[linux.do](https://linux.do)
-
-<p>
-  <img src="docs/images/linuxdo.png" width="96" height="96" alt="linux.do Logo">
-</p>
-
-linux.do 是一个重视长期交流质量的技术社区。社区文化强调：真诚、友善、团结、专业，共建你我引以为荣之社区。
+<img src="docs/images/linuxdo.png" width="20" height="20" alt="linux.do Logo"> [linux.do](https://linux.do)
+真诚、友善、团结、专业，共建你我引以为荣之社区。
