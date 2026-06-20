@@ -31,6 +31,6 @@
     <key>NSInputMonitoringUsageDescription</key>
     <string>ScrollBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.</string>
     <key>ScrollBridgeGitCommit</key>
-    <string>19519e6</string>
+    <string>9b39629</string>
 </dict>
 </plist>
