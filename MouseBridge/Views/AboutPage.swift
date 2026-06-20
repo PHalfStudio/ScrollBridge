@@ -30,9 +30,18 @@ struct AboutPage: View {
                     infoRow("about.build", metadata.build)
                     infoRow("about.gitCommit", metadata.gitCommit)
                     infoRow("about.copyright", metadata.copyright)
-                    infoRow("about.openSourceLicense", metadata.licenseFileName)
-                    infoRow("about.privacyPolicy", metadata.privacyFileName)
-                    infoRow("about.updateStatus", LocalizedStringKey(metadata.updateStatusKey))
+                    linkInfoRow("about.openSourceLicense", metadata.licenseFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-license")
+                    linkInfoRow("about.privacyPolicy", metadata.privacyFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-privacy")
+                    linkInfoRow("about.github", "ScrollBridge", urlString: "https://github.com/PHalfStudio/ScrollBridge/releases/latest")
+                    infoRow("about.updateStatus", LocalizedStringKey(appState.updateStatus.titleKey))
+                    HStack {
+                        Spacer()
+                        Button("about.checkForUpdates") {
+                            appState.checkForUpdatesManually()
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityHint(Text("about.checkForUpdates.hint"))
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Divider()
@@ -75,6 +84,17 @@ struct AboutPage: View {
             Spacer()
             Text(valueKey)
                 .foregroundStyle(.secondary)
+        }
+        .font(.callout)
+    }
+
+    private func linkInfoRow(_ titleKey: LocalizedStringKey, _ value: String, urlString: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(titleKey)
+            Spacer()
+            Link(value, destination: URL(string: urlString)!)
+                .foregroundStyle(.link)
+                .textSelection(.enabled)
         }
         .font(.callout)
     }

@@ -20,6 +20,7 @@ final class AppState: ObservableObject {
     @Published private(set) var lastErrorCode: String = "none"
     @Published private(set) var requestedSettingsPage: SettingsPage?
     @Published private(set) var hasRequestedInitialSettingsWindow = false
+    @Published private(set) var updateStatus: UpdateCheckStatus = .notChecked
 
     private let persistence: SettingsPersistence
     private let permissionService = PermissionService()
@@ -27,13 +28,20 @@ final class AppState: ObservableObject {
     private let hidDeviceService = HIDDeviceService()
     private let conflictDetectionService = ConflictDetectionService()
     private let eventTapService = EventTapService()
+    private let updateChecker: UpdateChecker
     private var refreshTimer: Timer?
+    private var updateCheckTimer: Timer?
+    private var isUpdateCheckInFlight = false
     private var workspaceObservers: [NSObjectProtocol] = []
     private var didBootstrap = false
     private var mouseButtonCaptureSequence = 0
 
-    init(persistence: SettingsPersistence = SettingsPersistence()) {
+    init(
+        persistence: SettingsPersistence = SettingsPersistence(),
+        updateChecker: UpdateChecker = UpdateChecker()
+    ) {
         self.persistence = persistence
+        self.updateChecker = updateChecker
         self.settings = persistence.load()
         if let errorCode = persistence.lastLoadErrorCode {
             lastError = errorCode
@@ -64,6 +72,10 @@ final class AppState: ObservableObject {
         refreshAll()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshAll(lightweight: true) }
+        }
+        checkForUpdatesAtLaunch()
+        updateCheckTimer = Timer.scheduledTimer(withTimeInterval: 86_400, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkForUpdates(trigger: .automatic) }
         }
     }
 
@@ -124,6 +136,8 @@ final class AppState: ObservableObject {
     func prepareForTermination() {
         refreshTimer?.invalidate()
         refreshTimer = nil
+        updateCheckTimer?.invalidate()
+        updateCheckTimer = nil
         for observer in workspaceObservers {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
@@ -225,6 +239,62 @@ final class AppState: ObservableObject {
     func removeMapping(_ mapping: ButtonMapping) {
         updateSettings { settings in
             settings.buttonMappings.removeAll { $0.id == mapping.id }
+        }
+    }
+
+    func checkForUpdatesAtLaunch() {
+        checkForUpdates(trigger: .automatic)
+    }
+
+    func checkForUpdatesManually() {
+        checkForUpdates(trigger: .manual)
+    }
+
+    private func checkForUpdates(trigger: UpdateCheckTrigger) {
+        guard !isUpdateCheckInFlight else { return }
+        isUpdateCheckInFlight = true
+        Task { @MainActor in
+            defer { isUpdateCheckInFlight = false }
+            let currentBuildNumber = Int(AppAboutMetadata.current.build) ?? 0
+            let result = await updateChecker.check(
+                currentBuildNumber: currentBuildNumber,
+                trigger: trigger
+            )
+            switch result {
+            case .updateAvailable(let release):
+                updateStatus = .updateAvailable
+                guard updateChecker.shouldPresentUpdatePrompt(trigger: trigger) else { return }
+                presentUpdatePrompt(release)
+            case .upToDate, .notModified:
+                updateStatus = .latest
+            case .unavailable, .skipped:
+                break
+            }
+        }
+    }
+
+    private func presentUpdatePrompt(_ release: AvailableUpdate) {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = String(localized: "updates.available.title")
+        alert.informativeText = [
+            String(format: String(localized: "updates.available.versionFormat"), release.name),
+            release.body,
+            String(localized: "updates.available.prompt")
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: "\n\n")
+        alert.addButton(withTitle: String(localized: "updates.action.update"))
+        alert.addButton(withTitle: String(localized: "updates.action.close"))
+        alert.addButton(withTitle: String(localized: "updates.action.remindLater"))
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            NSWorkspace.shared.open(release.htmlURL)
+        case .alertThirdButtonReturn:
+            updateChecker.suppressAutomaticPromptsForSevenDays()
+        default:
+            break
         }
     }
 

@@ -62,7 +62,6 @@ struct MouseBridgeCoreTests {
         #expect(metadata.versionDisplay == "1.2.3 (45)")
         #expect(metadata.licenseFileName == "LICENSES.md")
         #expect(metadata.privacyFileName == "PRIVACY.md")
-        #expect(metadata.updateStatusKey == "about.updateUnavailable")
     }
 
     @Test func aboutMetadataFallsBackWhenBuildValuesAreMissing() {
@@ -86,9 +85,26 @@ struct MouseBridgeCoreTests {
         let values = try localizedStringValues(for: "about.build")
 
         #expect(source.contains(#"infoRow("about.build", metadata.build)"#))
-        #expect(source.contains(#"infoRow("about.privacyPolicy", metadata.privacyFileName)"#))
         #expect(values["en"] == "Build")
         #expect(values["zh-Hans"] == "构建号")
+    }
+
+    @Test func aboutPageUsesExternalLicenseAndPrivacyLinks() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let aboutPageURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("AboutPage.swift")
+        let source = try String(contentsOf: aboutPageURL, encoding: .utf8)
+
+        #expect(source.contains(#"linkInfoRow("about.openSourceLicense", metadata.licenseFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-license")"#))
+        #expect(source.contains(#"linkInfoRow("about.privacyPolicy", metadata.privacyFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-privacy")"#))
+        #expect(source.contains(".foregroundStyle(.link)"))
+        #expect(source.contains(#"infoRow("about.openSourceLicense", metadata.licenseFileName)"#) == false)
+        #expect(source.contains(#"infoRow("about.privacyPolicy", metadata.privacyFileName)"#) == false)
     }
 
     @Test func aboutPageHasLocalizedPrivacyPolicyRow() throws {
@@ -96,6 +112,96 @@ struct MouseBridgeCoreTests {
 
         #expect(values["en"] == "Privacy policy")
         #expect(values["zh-Hans"] == "隐私说明")
+    }
+
+    @Test func updateCheckExtractsBuildNumberFromGithubTag() {
+        #expect(GitHubReleaseVersion.buildNumber(in: "v1.0(12)") == 12)
+        #expect(GitHubReleaseVersion.buildNumber(in: "v2.1.0(105)") == 105)
+        #expect(GitHubReleaseVersion.buildNumber(in: "v1.0") == nil)
+        #expect(GitHubReleaseVersion.buildNumber(in: "v1.0(beta)") == nil)
+    }
+
+    @Test func updateCheckEvaluatesLatestReleasePayloadAgainstCurrentBuild() throws {
+        let data = Data(#"""
+        {
+          "tag_name": "v1.0(2)",
+          "name": "v1.0",
+          "body": "- Improved update checks",
+          "html_url": "https://github.com/PHalfStudio/ScrollBridge/releases/tag/v1.0(2)"
+        }
+        """#.utf8)
+        let payload = try JSONDecoder().decode(GitHubLatestReleasePayload.self, from: data)
+        let result = UpdateCheckEvaluator.evaluate(payload: payload, currentBuildNumber: 1)
+
+        guard case .updateAvailable(let release) = result else {
+            Issue.record("Expected an available update")
+            return
+        }
+        #expect(release.buildNumber == 2)
+        #expect(release.name == "v1.0")
+        #expect(release.body == "- Improved update checks")
+        #expect(release.htmlURL.absoluteString == "https://github.com/PHalfStudio/ScrollBridge/releases/tag/v1.0(2)")
+        #expect(UpdateCheckEvaluator.evaluate(payload: payload, currentBuildNumber: 2) == .upToDate)
+    }
+
+    @Test func updateCheckPolicyThrottlesAutomaticRequestsAndSuppressesAutomaticPrompts() {
+        let suiteName = "MouseBridgeUpdatePolicyTests.\(UUID().uuidString)"
+        let suite = UserDefaults(suiteName: suiteName)!
+        defer { suite.removePersistentDomain(forName: suiteName) }
+        let policy = UpdateCheckPolicy(defaults: suite)
+        let now = Date(timeIntervalSince1970: 1_000)
+
+        #expect(policy.shouldBeginCheck(trigger: .automatic, now: now))
+        policy.recordCheckStarted(trigger: .automatic, now: now)
+        #expect(policy.shouldBeginCheck(trigger: .automatic, now: now.addingTimeInterval(60)) == false)
+        #expect(policy.shouldBeginCheck(trigger: .automatic, now: now.addingTimeInterval(86_401)))
+
+        policy.suppressAutomaticPrompts(until: now.addingTimeInterval(7 * 86_400))
+        #expect(policy.shouldPresentUpdatePrompt(trigger: .automatic, now: now.addingTimeInterval(60)) == false)
+        #expect(policy.shouldPresentUpdatePrompt(trigger: .manual, now: now.addingTimeInterval(60)))
+    }
+
+    @Test func aboutPageShowsCompactUpdateStatusAndGithubReleaseLink() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let aboutSource = try String(contentsOf: projectRoot.appendingPathComponent("MouseBridge/Views/AboutPage.swift"), encoding: .utf8)
+        let appStateSource = try String(contentsOf: projectRoot.appendingPathComponent("MouseBridge/App/AppState.swift"), encoding: .utf8)
+
+        #expect(UpdateCheckStatus.notChecked.titleKey == "updates.status.notChecked")
+        #expect(UpdateCheckStatus.latest.titleKey == "updates.status.latest")
+        #expect(UpdateCheckStatus.updateAvailable.titleKey == "updates.status.updateAvailable")
+        #expect(aboutSource.contains(#"infoRow("about.updateStatus", LocalizedStringKey(appState.updateStatus.titleKey))"#))
+        #expect(aboutSource.contains(#"linkInfoRow("about.github", "ScrollBridge", urlString: "https://github.com/PHalfStudio/ScrollBridge/releases/latest")"#))
+        #expect(aboutSource.contains("metadata.updateStatusKey") == false)
+        #expect(appStateSource.contains("updateStatus = .latest"))
+        #expect(appStateSource.contains("updateStatus = .updateAvailable"))
+        #expect(try localizedStringValues(for: "updates.status.latest")["zh-Hans"] == "当前为最新版本")
+        #expect(try localizedStringValues(for: "updates.status.updateAvailable")["zh-Hans"] == "发现新版本")
+        #expect(try localizedStringValues(for: "about.github")["zh-Hans"] == "GitHub")
+    }
+
+    @Test func updateCheckIsTriggeredFromLaunchTimerAndAboutPageButton() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appStateSource = try String(contentsOf: projectRoot.appendingPathComponent("MouseBridge/App/AppState.swift"), encoding: .utf8)
+        let aboutSource = try String(contentsOf: projectRoot.appendingPathComponent("MouseBridge/Views/AboutPage.swift"), encoding: .utf8)
+        let checkerSource = try String(contentsOf: projectRoot.appendingPathComponent("MouseBridge/Services/UpdateChecker.swift"), encoding: .utf8)
+
+        #expect(aboutSource.contains("Button(\"about.checkForUpdates\")"))
+        #expect(aboutSource.contains("appState.checkForUpdatesManually()"))
+        #expect(appStateSource.contains("checkForUpdatesAtLaunch"))
+        #expect(appStateSource.contains("updateCheckTimer"))
+        #expect(appStateSource.contains("86_400"))
+        #expect(checkerSource.contains("https://api.github.com/repos/PHalfStudio/ScrollBridge/releases/latest"))
+        #expect(checkerSource.contains("If-None-Match"))
+        #expect(checkerSource.contains("User-Agent"))
+        #expect(checkerSource.contains("304"))
+        #expect(try localizedStringValues(for: "about.checkForUpdates")["zh-Hans"] == "检查更新")
+        #expect(try localizedStringValues(for: "updates.action.remindLater")["zh-Hans"] == "7天内不要提醒我")
     }
 
     @Test func aboutPageListsReferenceProjectAcknowledgements() throws {
@@ -195,6 +301,36 @@ struct MouseBridgeCoreTests {
         #expect(readme.contains("/Applications/ScrollBridge.app"))
         #expect(readme.contains("系统设置 > 隐私与安全性 > 输入监控 / 辅助功能"))
         #expect(readme.contains("~/Library/Preferences/cn.phalfstudio.MouseBridge.plist"))
+    }
+
+    @Test func readmeUsesOpenSourceProjectStructure() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let readme = try String(contentsOf: projectRoot.appendingPathComponent("README.md"), encoding: .utf8)
+        let englishReadme = try String(contentsOf: projectRoot.appendingPathComponent("README_EN.md"), encoding: .utf8)
+        let gitignore = try String(contentsOf: projectRoot.appendingPathComponent(".gitignore"), encoding: .utf8)
+
+        #expect(readme.contains("MouseBridge/Assets.xcassets/AppIcon.appiconset/AppIcon-256.png"))
+        #expect(readme.contains("[中文](https://github.com/PHalfStudio/ScrollBridge/blob/main/README.md)"))
+        #expect(readme.contains("[English](https://github.com/PHalfStudio/ScrollBridge/blob/main/README_EN.md)"))
+        #expect(readme.contains("[https://github.com/PHalfStudio/ScrollBridge/releases/latest](https://github.com/PHalfStudio/ScrollBridge/releases/latest)"))
+        #expect(readme.contains("docs/images/linuxdo.png"))
+        #expect(readme.contains("## 功能特性"))
+        #expect(readme.contains("## 安装"))
+        #expect(readme.contains("## 从源码构建"))
+        #expect(readme.contains("## 许可证"))
+        #expect(readme.contains("## 致谢与友链"))
+        #expect(readme.contains("[linux.do](https://linux.do)"))
+        #expect(readme.contains("真诚、友善、团结、专业"))
+        #expect(readme.contains("共建你我引以为荣之社区"))
+        #expect(englishReadme.contains("## Features"))
+        #expect(englishReadme.contains("## Installation"))
+        #expect(englishReadme.contains("## Build from Source"))
+        #expect(englishReadme.contains("## License"))
+        #expect(englishReadme.contains("docs/images/linuxdo.png"))
+        #expect(gitignore.contains("build/"))
     }
 
     @Test func readmeNamesKnownVendorButtonLimitations() throws {

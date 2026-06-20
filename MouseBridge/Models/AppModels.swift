@@ -8,7 +8,6 @@ public struct AppAboutMetadata: Equatable, Sendable {
     var copyright: String
     let licenseFileName = "LICENSES.md"
     let privacyFileName = "PRIVACY.md"
-    let updateStatusKey = "about.updateUnavailable"
     let referenceProjectNames = [
         "Mac Mouse Fix",
         "Scroll Reverser",
