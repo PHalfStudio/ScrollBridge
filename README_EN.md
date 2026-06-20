@@ -38,7 +38,7 @@ The project is designed to stay local, transparent, and verifiable: input events
 
 Download the latest version from GitHub Releases:
 
-[https://github.com/PHalfStudio/ScrollBridge/releases/latest](https://github.com/PHalfStudio/ScrollBridge/releases/latest)
+[latest](https://github.com/PHalfStudio/ScrollBridge/releases/latest)
 
 Usage:
 
@@ -106,10 +106,6 @@ Open source license: [LICENSES.md](https://sites.phalfstudio.cn/scroll-bridge-li
 
 ScrollBridge is informed by public design experience from Mac Mouse Fix, Scroll Reverser, Mos, LinearMouse, Karabiner-Elements, and related projects.
 
-Friend link: [linux.do](https://linux.do)
+<img src="docs/images/linuxdo.png" width="20" height="20" alt="linux.do Logo"> [linux.do](https://linux.do)
 
-<p>
-  <img src="docs/images/linuxdo.png" width="96" height="96" alt="linux.do Logo">
-</p>
-
-linux.do is a technology community focused on long-term discussion quality. Its culture values sincerity, kindness, unity, and professionalism, building a community that everyone can be proud of.
+Sincerity, kindness, unity, and professionalism, building a community that everyone can be proud of.
