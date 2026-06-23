@@ -28,7 +28,6 @@ struct AboutPage: View {
                 VStack(alignment: .leading, spacing: 10) {
                     infoRow("about.version", metadata.versionDisplay)
                     infoRow("about.build", metadata.build)
-                    infoRow("about.gitCommit", metadata.gitCommit)
                     infoRow("about.copyright", metadata.copyright)
                     linkInfoRow("about.openSourceLicense", metadata.licenseFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-license")
                     linkInfoRow("about.privacyPolicy", metadata.privacyFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-privacy")

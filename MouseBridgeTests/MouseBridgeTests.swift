@@ -52,12 +52,10 @@ struct MouseBridgeCoreTests {
         let metadata = AppAboutMetadata(infoDictionary: [
             "CFBundleShortVersionString": "1.2.3",
             "CFBundleVersion": "45",
-            "MouseBridgeGitCommit": "abc1234",
             "NSHumanReadableCopyright": "© 2026 Example"
         ])
         #expect(metadata.version == "1.2.3")
         #expect(metadata.build == "45")
-        #expect(metadata.gitCommit == "abc1234")
         #expect(metadata.copyright == "© 2026 Example")
         #expect(metadata.versionDisplay == "1.2.3 (45)")
         #expect(metadata.licenseFileName == "LICENSES.md")
@@ -68,8 +66,29 @@ struct MouseBridgeCoreTests {
         let metadata = AppAboutMetadata(infoDictionary: [:])
         #expect(metadata.version == "1.0")
         #expect(metadata.build == "1")
-        #expect(metadata.gitCommit == "unknown")
         #expect(metadata.copyright == "© 2026 PHalfStudio")
+    }
+
+    @Test func aboutPageDoesNotExposeGitCommitMetadata() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let files = [
+            "Config/Info.plist",
+            "MouseBridge.xcodeproj/project.pbxproj",
+            "MouseBridge/Models/AppModels.swift",
+            "MouseBridge/Views/AboutPage.swift",
+            "MouseBridge/Resources/Localizable.xcstrings"
+        ]
+
+        for file in files {
+            let source = try String(contentsOf: projectRoot.appendingPathComponent(file), encoding: .utf8)
+            #expect(source.contains("MouseBridgeGitCommit") == false, "Git commit key remains in \(file)")
+            #expect(source.contains("ScrollBridgeGitCommit") == false, "Legacy git commit key remains in \(file)")
+            #expect(source.contains("about.gitCommit") == false, "Git commit localization remains in \(file)")
+            #expect(source.contains("gitCommit") == false, "Git commit property remains in \(file)")
+        }
     }
 
     @Test func aboutPageShowsBuildNumberSeparately() throws {
@@ -235,14 +254,13 @@ struct MouseBridgeCoreTests {
             let source = try String(contentsOf: projectRoot.appendingPathComponent(relativePath), encoding: .utf8)
             #expect(source.contains("ScrollBridge") == false, "Old product name remains in \(relativePath)")
             #expect(source.contains("PHalfStudio/ScrollBridge") == false, "Old GitHub repository remains in \(relativePath)")
-            #expect(source.contains("MouseBridge"), "New product name is missing from \(relativePath)")
         }
 
         let infoData = try Data(contentsOf: projectRoot.appendingPathComponent("Config/Info.plist"))
         let info = try #require(PropertyListSerialization.propertyList(from: infoData, format: nil) as? [String: Any])
         #expect(info["CFBundleDisplayName"] as? String == "MouseBridge")
         #expect(info["CFBundleName"] as? String == "MouseBridge")
-        #expect(info["MouseBridgeGitCommit"] as? String == "9b39629")
+        #expect(info["MouseBridgeGitCommit"] == nil)
         #expect(info["ScrollBridgeGitCommit"] == nil)
     }
 
@@ -319,7 +337,7 @@ struct MouseBridgeCoreTests {
         #expect(aboutSource.contains("init(toolbarSafeAreaTopPadding: CGFloat = 0)"))
         #expect(aboutSource.contains("private let toolbarSafeAreaTopPadding: CGFloat"))
         #expect(aboutSource.contains(#".padding(.top, toolbarSafeAreaTopPadding)"#) == false)
-        #expect(settingsSource.contains("AboutPage(toolbarSafeAreaTopPadding: 72)"))
+        #expect(settingsSource.contains("AboutPage(toolbarSafeAreaTopPadding:") == false)
     }
 
     @Test func appIconAssetSlotsReferenceExistingPNGFiles() throws {
@@ -630,6 +648,41 @@ struct MouseBridgeCoreTests {
         #expect(source.contains(#".accessibilityHint(Text(subtitleKey))"#))
     }
 
+    @Test func settingsPagesUsePermissionsStyleScrollViewLayout() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let viewsRoot = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+        let pageFiles = [
+            "GeneralPage.swift",
+            "ScrollDirectionPage.swift",
+            "SmoothScrollPage.swift",
+            "ButtonMappingPage.swift",
+            "DevicesPage.swift",
+            "PermissionsDiagnosticsPage.swift",
+            "AboutPage.swift"
+        ]
+
+        for pageFile in pageFiles {
+            let source = try String(contentsOf: viewsRoot.appendingPathComponent(pageFile), encoding: .utf8)
+            #expect(source.contains("ScrollView {"), "\(pageFile) should use ScrollView as its page container")
+            #expect(source.contains(".settingPagePadding()") || pageFile == "AboutPage.swift")
+        }
+
+        let generalSource = try String(contentsOf: viewsRoot.appendingPathComponent("GeneralPage.swift"), encoding: .utf8)
+        let scrollSource = try String(contentsOf: viewsRoot.appendingPathComponent("ScrollDirectionPage.swift"), encoding: .utf8)
+        let smoothSource = try String(contentsOf: viewsRoot.appendingPathComponent("SmoothScrollPage.swift"), encoding: .utf8)
+        let devicesSource = try String(contentsOf: viewsRoot.appendingPathComponent("DevicesPage.swift"), encoding: .utf8)
+
+        #expect(generalSource.contains("Form {") == false)
+        #expect(scrollSource.contains("Form {") == false)
+        #expect(smoothSource.contains("Form {") == false)
+        #expect(devicesSource.contains("List(appState.devices)") == false)
+    }
+
     @Test func settingsPickersExposeVoiceOverLabelsAndHints() throws {
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
@@ -752,6 +805,21 @@ struct MouseBridgeCoreTests {
         #expect(values["zh-Hans"] == "%.3f 毫秒")
     }
 
+    @Test func diagnosticsCallbackDurationUsesSelectedAppLanguage() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pageURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("PermissionsDiagnosticsPage.swift")
+        let source = try String(contentsOf: pageURL, encoding: .utf8)
+
+        #expect(source.contains(#"AppLocalization.format("diagnostics.callbackMillisecondsFormat", language: appState.settings.language"#))
+        #expect(source.contains(#"NSLocalizedString("diagnostics.callbackMillisecondsFormat""#) == false)
+    }
+
     @Test func buttonMappingListActionButtonsExposeVoiceOverHints() throws {
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
@@ -774,7 +842,7 @@ struct MouseBridgeCoreTests {
         #expect(source.contains(#".accessibilityHint(Text("mapping.edit.hint"))"#))
         #expect(source.contains(#".accessibilityLabel(Text("mapping.delete"))"#))
         #expect(source.contains(#".accessibilityHint(Text("mapping.delete.hint"))"#))
-        #expect(source.contains(#".accessibilityLabel(Text(String(format: NSLocalizedString("mapping.useLastButton", comment: ""), last)))"#))
+        #expect(source.contains(#".accessibilityLabel(Text(AppLocalization.format("mapping.useLastButton", language: appState.settings.language, last)))"#))
         #expect(source.contains(#".accessibilityHint(Text("mapping.useLastButton.hint"))"#))
 
         #expect(addHint["en"] == "Create a new mouse button mapping.")
@@ -798,8 +866,9 @@ struct MouseBridgeCoreTests {
             .appendingPathComponent("ButtonMappingPage.swift")
         let source = try String(contentsOf: pageURL, encoding: .utf8)
 
-        #expect(source.contains(".listStyle(.plain)"))
-        #expect(source.contains(".scrollContentBackground(.hidden)"))
+        #expect(source.contains("ScrollView {"))
+        #expect(source.contains("List {") == false)
+        #expect(source.contains("GlassCard {"))
         #expect(source.contains(".clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))"))
         #expect(source.contains("RoundedRectangle(cornerRadius: 16, style: .continuous)"))
     }
@@ -832,6 +901,24 @@ struct MouseBridgeCoreTests {
         #expect(editorLabel["zh-Hans"] == "启用")
         #expect(editorHint["en"] == "Turn this individual mapping on or off.")
         #expect(editorHint["zh-Hans"] == "开启或关闭当前这条按键映射。")
+    }
+
+    @Test func buttonMappingEditorSheetUsesSelectedAppLocale() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pageURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("ButtonMappingPage.swift")
+        let source = try String(contentsOf: pageURL, encoding: .utf8)
+
+        #expect(source.contains(#".environment(\.locale, appState.locale)"#))
+        #expect(source.contains(#"AppLocalization.format("mapping.buttonFormat", language: appState.settings.language"#))
+        #expect(source.contains(#"AppLocalization.format("mapping.useLastButton", language: appState.settings.language"#))
+        #expect(source.contains(#"NSLocalizedString("mapping.buttonFormat""#) == false)
+        #expect(source.contains(#"NSLocalizedString("mapping.useLastButton""#) == false)
     }
 
     @Test func buttonMappingEditorActionButtonsExposeVoiceOverHints() throws {
@@ -1063,6 +1150,47 @@ struct MouseBridgeCoreTests {
         #expect(statusItemSource.contains("openSettingsWindowAction?()"))
         #expect(statusItemSource.contains("private func makeSettingsWindow") == false)
         #expect(statusItemSource.contains("SettingsStatusWindowRootView") == false)
+    }
+
+    @Test func settingsWindowTitleUsesSelectedAppLanguage() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("MouseBridgeApp.swift"),
+            encoding: .utf8
+        )
+        let values = try localizedStringValues(for: "window.settings")
+
+        #expect(appSource.contains("SettingsWindowChromeApplier(language: appState.settings.language)"))
+        #expect(appSource.contains(#"window.title = AppLocalization.string("window.settings", language: language)"#))
+        #expect(values["en"] == "MouseBridge Settings")
+        #expect(values["zh-Hans"] == "MouseBridge 设置")
+    }
+
+    @Test func settingsWindowAllowsResizeButDisablesFullScreen() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("MouseBridgeApp.swift"),
+            encoding: .utf8
+        )
+
+        #expect(appSource.contains("window.styleMask.insert(.resizable)"))
+        #expect(appSource.contains("window.styleMask.remove(.fullScreen)"))
+        #expect(appSource.contains("window.collectionBehavior.insert(.fullScreenNone)"))
+        #expect(appSource.contains("window.collectionBehavior.remove(.fullScreenPrimary)"))
+        #expect(appSource.contains("window.collectionBehavior.remove(.fullScreenAuxiliary)"))
+        #expect(appSource.contains("window.standardWindowButton(.zoomButton)?.isEnabled = false"))
     }
 
     @Test func closingSettingsWindowKeepsMenuBarAppRunning() throws {
@@ -2058,6 +2186,22 @@ struct MouseBridgeCoreTests {
         #expect(values["zh-Hans"] == "暂未识别到设备。")
     }
 
+    @Test func permissionsDiagnosticsDetailsUseGlassCardInsteadOfForm() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let pageURL = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+            .appendingPathComponent("PermissionsDiagnosticsPage.swift")
+        let source = try String(contentsOf: pageURL, encoding: .utf8)
+
+        #expect(source.contains("GlassCard {"))
+        #expect(source.contains("Form {") == false)
+        #expect(source.contains(".formStyle(.grouped)") == false)
+    }
+
     @Test func permissionsDiagnosticsActionButtonsExposeVoiceOverLabelsAndHints() throws {
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
@@ -2444,6 +2588,34 @@ struct MouseBridgeCoreTests {
         let summary = ButtonMappingListSummary(mapping: mapping)
         #expect(summary.scopeKey == "mapping.scope.global")
         #expect(summary.note == "Copy selection")
+    }
+
+    @Test func buttonMappingListSummaryUsesSelectedLanguageForSystemActions() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let modelSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("Models")
+                .appendingPathComponent("AppModels.swift"),
+            encoding: .utf8
+        )
+        let pageSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("Views")
+                .appendingPathComponent("ButtonMappingPage.swift"),
+            encoding: .utf8
+        )
+        let actionValues = try localizedStringValues(for: "mapping.systemAction.missionControl")
+
+        #expect(modelSource.contains("init(mapping: ButtonMapping, language: AppLanguage"))
+        #expect(modelSource.contains("actionDisplayName = mapping.action.displayName(language: language)"))
+        #expect(pageSource.contains("ButtonMappingListSummary(mapping: mapping, language: appState.settings.language)"))
+        #expect(actionValues["en"] == "Mission Control")
+        #expect(actionValues["zh-Hans"] == "调度中心")
     }
 
     @Test func buttonMappingListSummaryIncludesTrimmedCustomName() {

@@ -30,7 +30,5 @@
     <string>© 2026 PHalfStudio</string>
     <key>NSInputMonitoringUsageDescription</key>
     <string>MouseBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.</string>
-    <key>MouseBridgeGitCommit</key>
-    <string>9b39629</string>
 </dict>
 </plist>

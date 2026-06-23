@@ -8,117 +8,129 @@ struct SmoothScrollPage: View {
     @State private var appSelectionErrorKey: String?
 
     var body: some View {
-        Form {
-            if let noticeKey = appState.featureAvailabilityNoticeKey {
-                Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if let noticeKey = appState.featureAvailabilityNoticeKey {
                     FeatureAvailabilityNoticeBanner(messageKey: noticeKey)
                 }
-            }
-            Section("section.smoothScroll") {
-                SettingsToggleRow(titleKey: "smooth.enabled", subtitleKey: "smooth.enabled.desc", isOn: boolBinding(\.smoothScrollingEnabled))
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("smooth.steps")
-                        Spacer()
-                        Text("\(appState.settings.smoothSteps)")
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: smoothStepsBinding, in: 1...20, step: 1) {
-                        Text("smooth.steps")
-                    }
-                    .accessibilityLabel(Text("smooth.steps"))
-                    .accessibilityHint(Text("smooth.steps.hint"))
-                    .accessibilityValue(Text("\(appState.settings.smoothSteps)"))
-                    Text(smoothHintKey)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                SettingsToggleRow(titleKey: "smooth.horizontal", subtitleKey: "smooth.horizontal.desc", isOn: boolBinding(\.smoothHorizontalEnabled))
-                HStack {
-                    Text("smooth.duration")
-                    Slider(value: durationBinding, in: 40...240, step: 10)
-                        .accessibilityLabel(Text("smooth.duration"))
-                        .accessibilityHint(Text("smooth.duration.hint"))
-                        .accessibilityValue(Text(smoothDurationValue))
-                    Text(smoothDurationValue)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 72, alignment: .trailing)
-                }
-                Picker("smooth.curve", selection: curveBinding) {
-                    ForEach(SmoothCurve.allCases) { curve in
-                        Text(LocalizedStringKey(curve.titleKey)).tag(curve)
-                    }
-                }
-                .accessibilityLabel(Text("smooth.curve"))
-                .accessibilityHint(Text("smooth.curve.hint"))
-                SettingsToggleRow(titleKey: "smooth.inertia", subtitleKey: "smooth.inertia.desc", isOn: boolBinding(\.smoothInertiaEnabled))
-                HStack {
-                    Text("smooth.speedMultiplier")
-                    Slider(value: speedBinding, in: 0.5...2, step: 0.1)
-                        .accessibilityLabel(Text("smooth.speedMultiplier"))
-                        .accessibilityHint(Text("smooth.speedMultiplier.hint"))
-                        .accessibilityValue(Text("\(appState.settings.smoothSpeedMultiplier)"))
-                    Text(appState.settings.smoothSpeedMultiplier, format: .number.precision(.fractionLength(1)))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 40, alignment: .trailing)
-                }
-            }
 
-            Section("section.excludedApps") {
-                Text("excludedApps.description")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                HStack {
-                    TextField("excludedApps.placeholder", text: $newBundleIdentifier)
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityLabel(Text("excludedApps.placeholder"))
-                        .accessibilityHint(Text("excludedApps.placeholder.hint"))
-                    Button("excludedApps.add") {
-                        addExcludedBundleIdentifier()
-                    }
-                    .accessibilityLabel(Text("excludedApps.add"))
-                    .accessibilityHint(Text("excludedApps.add.hint"))
-                    .disabled(newBundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                Button("excludedApps.chooseApp") {
-                    chooseExcludedApplication()
-                }
-                .accessibilityLabel(Text("excludedApps.chooseApp"))
-                .accessibilityHint(Text("excludedApps.chooseApp.hint"))
-
-                if let appSelectionErrorKey {
-                    Label(LocalizedStringKey(appSelectionErrorKey), systemImage: "exclamationmark.triangle")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-
-                if appState.settings.excludedBundleIdentifiers.isEmpty {
-                    Text("excludedApps.empty")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(appState.settings.excludedBundleIdentifiers, id: \.self) { bundleIdentifier in
-                        HStack {
-                            Text(bundleIdentifier)
-                                .font(.system(.body, design: .monospaced))
-                                .accessibilityLabel(Text(excludedAppAccessibilityLabel(for: bundleIdentifier)))
-                                .accessibilityHint(Text("excludedApps.row.accessibilityHint"))
-                            Spacer()
-                            Button("excludedApps.delete", role: .destructive) {
-                                appState.removeExcludedBundleIdentifier(bundleIdentifier)
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("section.smoothScroll")
+                            .font(.headline)
+                        SettingsToggleRow(titleKey: "smooth.enabled", subtitleKey: "smooth.enabled.desc", isOn: boolBinding(\.smoothScrollingEnabled))
+                        Divider()
+                        SettingsToggleRow(titleKey: "smooth.horizontal", subtitleKey: "smooth.horizontal.desc", isOn: boolBinding(\.smoothHorizontalEnabled))
+                        Divider()
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("smooth.steps")
+                                Slider(value: smoothStepsBinding, in: 1...20, step: 1)
+                                    .accessibilityLabel(Text("smooth.steps"))
+                                    .accessibilityHint(Text("smooth.steps.hint"))
+                                    .accessibilityValue(Text("\(appState.settings.smoothSteps)"))
                             }
-                            .accessibilityLabel(Text("excludedApps.delete"))
-                            .accessibilityHint(Text("excludedApps.delete.hint"))
+                            Text(smoothHintKey)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Divider()
+                        HStack {
+                            Text("smooth.duration")
+                            Slider(value: durationBinding, in: 40...240, step: 10)
+                                .accessibilityLabel(Text("smooth.duration"))
+                                .accessibilityHint(Text("smooth.duration.hint"))
+                                .accessibilityValue(Text(smoothDurationValue))
+                            Text(smoothDurationValue)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, alignment: .trailing)
+                        }
+                        Divider()
+                        Picker("smooth.curve", selection: curveBinding) {
+                            ForEach(SmoothCurve.allCases) { curve in
+                                Text(LocalizedStringKey(curve.titleKey)).tag(curve)
+                            }
+                        }
+                        .accessibilityLabel(Text("smooth.curve"))
+                        .accessibilityHint(Text("smooth.curve.hint"))
+                        Divider()
+                        SettingsToggleRow(titleKey: "smooth.inertia", subtitleKey: "smooth.inertia.desc", isOn: boolBinding(\.smoothInertiaEnabled))
+                        Divider()
+                        HStack {
+                            Text("smooth.speedMultiplier")
+                            Slider(value: speedBinding, in: 0.5...2, step: 0.1)
+                                .accessibilityLabel(Text("smooth.speedMultiplier"))
+                                .accessibilityHint(Text("smooth.speedMultiplier.hint"))
+                                .accessibilityValue(Text("\(appState.settings.smoothSpeedMultiplier)"))
+                            Text(appState.settings.smoothSpeedMultiplier, format: .number.precision(.fractionLength(1)))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 40, alignment: .trailing)
                         }
                     }
-                    .onDelete { offsets in
-                        appState.removeExcludedBundleIdentifiers(at: offsets)
+                }
+
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("section.excludedApps")
+                            .font(.headline)
+                        Text("excludedApps.description")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        HStack {
+                            TextField("excludedApps.placeholder", text: $newBundleIdentifier)
+                                .textFieldStyle(.roundedBorder)
+                                .accessibilityLabel(Text("excludedApps.placeholder"))
+                                .accessibilityHint(Text("excludedApps.placeholder.hint"))
+                            Button("excludedApps.add") {
+                                addExcludedBundleIdentifier()
+                            }
+                            .accessibilityLabel(Text("excludedApps.add"))
+                            .accessibilityHint(Text("excludedApps.add.hint"))
+                            .disabled(newBundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                        Button("excludedApps.chooseApp") {
+                            chooseExcludedApplication()
+                        }
+                        .accessibilityLabel(Text("excludedApps.chooseApp"))
+                        .accessibilityHint(Text("excludedApps.chooseApp.hint"))
+
+                        if let appSelectionErrorKey {
+                            Label(LocalizedStringKey(appSelectionErrorKey), systemImage: "exclamationmark.triangle")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+
+                        if appState.settings.excludedBundleIdentifiers.isEmpty {
+                            Text("excludedApps.empty")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            VStack(spacing: 0) {
+                                ForEach(appState.settings.excludedBundleIdentifiers, id: \.self) { bundleIdentifier in
+                                    HStack {
+                                        Text(bundleIdentifier)
+                                            .font(.system(.body, design: .monospaced))
+                                            .accessibilityLabel(Text(excludedAppAccessibilityLabel(for: bundleIdentifier)))
+                                            .accessibilityHint(Text("excludedApps.row.accessibilityHint"))
+                                        Spacer()
+                                        Button("excludedApps.delete", role: .destructive) {
+                                            appState.removeExcludedBundleIdentifier(bundleIdentifier)
+                                        }
+                                        .accessibilityLabel(Text("excludedApps.delete"))
+                                        .accessibilityHint(Text("excludedApps.delete.hint"))
+                                    }
+                                    .padding(.vertical, 8)
+                                    if bundleIdentifier != appState.settings.excludedBundleIdentifiers.last {
+                                        Divider()
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
+            .settingPagePadding()
         }
-        .formStyle(.grouped)
-        .settingPagePadding()
         .navigationTitle("page.smoothScroll")
     }
 

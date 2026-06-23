@@ -52,6 +52,10 @@ struct SettingsRootView: View {
     @EnvironmentObject private var appState: AppState
     @State private var selection: SettingsPage? = .general
 
+    private var currentPage: SettingsPage {
+        selection ?? .general
+    }
+
     var body: some View {
         if appState.shouldPresentOnboarding {
             WelcomeOnboardingView()
@@ -66,26 +70,12 @@ struct SettingsRootView: View {
                 }
                 .navigationTitle("app.name")
                 .navigationSplitViewColumnWidth(min: 180, ideal: 210)
+                .settingsScrollEdgeEffect()
             } detail: {
-                Group {
-                    switch selection ?? .general {
-                    case .general:
-                        GeneralPage()
-                    case .scrollDirection:
-                        ScrollDirectionPage()
-                    case .smoothScroll:
-                        SmoothScrollPage()
-                    case .buttonMapping:
-                        ButtonMappingPage()
-                    case .devices:
-                        DevicesPage()
-                    case .permissions:
-                        PermissionsDiagnosticsPage()
-                    case .about:
-                        AboutPage(toolbarSafeAreaTopPadding: 72)
-                    }
-                }
-                .environmentObject(appState)
+                detailPage(currentPage)
+                    .environmentObject(appState)
+                    .navigationTitle(currentPage.titleKey)
+                    .settingsScrollEdgeEffect()
             }
             .onAppear(perform: applyRequestedPage)
             .onChange(of: appState.requestedSettingsPage) { _, _ in
@@ -94,9 +84,41 @@ struct SettingsRootView: View {
         }
     }
 
+    @ViewBuilder
+    private func detailPage(_ page: SettingsPage) -> some View {
+        switch page {
+        case .general:
+            GeneralPage()
+        case .scrollDirection:
+            ScrollDirectionPage()
+        case .smoothScroll:
+            SmoothScrollPage()
+        case .buttonMapping:
+            ButtonMappingPage()
+        case .devices:
+            DevicesPage()
+        case .permissions:
+            PermissionsDiagnosticsPage()
+        case .about:
+            AboutPage()
+        }
+    }
+
     private func applyRequestedPage() {
         guard let page = appState.requestedSettingsPage else { return }
         selection = page
         appState.clearRequestedSettingsPage()
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func settingsScrollEdgeEffect() -> some View {
+        if #available(macOS 26.0, *) {
+            self
+                .scrollEdgeEffectStyle(.hard, for: .top)
+        } else {
+            self
+        }
     }
 }

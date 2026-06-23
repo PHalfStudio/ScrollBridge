@@ -30,90 +30,97 @@ struct PermissionsDiagnosticsPage: View {
                     }
                 }
 
-                Form {
-                    Section("diagnostics.runtime") {
-                        row("diagnostics.inputMonitoring", LocalizedStringKey(appState.permissions.inputMonitoring.titleKey))
-                        row("diagnostics.accessibility", LocalizedStringKey(appState.permissions.accessibility.titleKey))
-                        row("diagnostics.loginItem", LocalizedStringKey(appState.launchItemStatus.titleKey))
-                        row("diagnostics.eventTap", LocalizedStringKey(appState.eventTapStatus.titleKey))
-                        row("diagnostics.devices", "\(appState.devices.count)")
-                        row("diagnostics.excludedApps", "\(appState.settings.excludedBundleIdentifiers.count)")
-                        row("diagnostics.conflicts", "\(appState.conflictingInputTools.count)")
-                        eventSummaryRow("diagnostics.lastEvent", appState.lastEventSummary)
-                        diagnosticValueRow("diagnostics.lastError", DiagnosticDisplayValue(appState.lastError))
-                        row("diagnostics.lastErrorCode", appState.lastErrorCode)
-                        row("diagnostics.eventCount", "\(appState.eventTapPerformance.eventCount)")
-                        row("diagnostics.averageCallback", localizedCallbackDuration(appState.eventTapPerformance.averageCallbackMilliseconds))
-                        row("diagnostics.p95Callback", localizedCallbackDuration(appState.eventTapPerformance.p95CallbackMilliseconds))
-                    }
-                    Section("diagnostics.devices") {
-                        if appState.devices.isEmpty {
-                            Text("diagnostics.noDevices")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(appState.devices) { device in
-                                let summary = DeviceProfileDisplaySummary(device: device)
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text(device.name)
-                                            .font(.headline)
-                                        Spacer()
-                                        Text(LocalizedStringKey(device.kind.titleKey))
-                                            .foregroundStyle(.secondary)
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Section("diagnostics.runtime") {
+                            row("diagnostics.inputMonitoring", LocalizedStringKey(appState.permissions.inputMonitoring.titleKey))
+                            row("diagnostics.accessibility", LocalizedStringKey(appState.permissions.accessibility.titleKey))
+                            row("diagnostics.loginItem", LocalizedStringKey(appState.launchItemStatus.titleKey))
+                            row("diagnostics.eventTap", LocalizedStringKey(appState.eventTapStatus.titleKey))
+                            row("diagnostics.devices", "\(appState.devices.count)")
+                            row("diagnostics.excludedApps", "\(appState.settings.excludedBundleIdentifiers.count)")
+                            row("diagnostics.conflicts", "\(appState.conflictingInputTools.count)")
+                            eventSummaryRow("diagnostics.lastEvent", appState.lastEventSummary)
+                            diagnosticValueRow("diagnostics.lastError", DiagnosticDisplayValue(appState.lastError))
+                            row("diagnostics.lastErrorCode", appState.lastErrorCode)
+                            row("diagnostics.eventCount", "\(appState.eventTapPerformance.eventCount)")
+                            row("diagnostics.averageCallback", localizedCallbackDuration(appState.eventTapPerformance.averageCallbackMilliseconds))
+                            row("diagnostics.p95Callback", localizedCallbackDuration(appState.eventTapPerformance.p95CallbackMilliseconds))
+                        }
+                        Divider()
+                        Section("diagnostics.devices") {
+                            if appState.devices.isEmpty {
+                                Text("diagnostics.noDevices")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(appState.devices) { device in
+                                    let summary = DeviceProfileDisplaySummary(device: device)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text(device.name)
+                                                .font(.headline)
+                                            Spacer()
+                                            Text(LocalizedStringKey(device.kind.titleKey))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        DeviceDetailGrid(summary: summary)
                                     }
-                                    DeviceDetailGrid(summary: summary)
+                                    .padding(.vertical, 4)
                                 }
-                                .padding(.vertical, 4)
                             }
                         }
-                    }
-                    Section("diagnostics.conflicts") {
-                        if appState.conflictingInputTools.isEmpty {
-                            Text("diagnostics.noConflicts")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("diagnostics.conflicts.note")
+                        Divider()
+                        Section("diagnostics.conflicts") {
+                            if appState.conflictingInputTools.isEmpty {
+                                Text("diagnostics.noConflicts")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("diagnostics.conflicts.note")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                ForEach(appState.conflictingInputTools) { tool in
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(tool.name)
+                                        if let bundleIdentifier = tool.bundleIdentifier {
+                                            Text(bundleIdentifier)
+                                                .font(.caption.monospaced())
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Divider()
+                        Section("permissions.reset.title") {
+                            Text("permissions.reset.body")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            ForEach(appState.conflictingInputTools) { tool in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(tool.name)
-                                    if let bundleIdentifier = tool.bundleIdentifier {
-                                        Text(bundleIdentifier)
-                                            .font(.caption.monospaced())
+                        }
+                        Divider()
+                        Section("diagnostics.logs") {
+                            if appState.logs.isEmpty {
+                                Text("diagnostics.noLogs")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(appState.logs) { log in
+                                    VStack(alignment: .leading) {
+                                        Text(LocalizedStringKey(log.message))
+                                        Text(log.timestamp, style: .time)
+                                            .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
                                 }
                             }
                         }
-                    }
-                    Section("permissions.reset.title") {
-                        Text("permissions.reset.body")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Section("diagnostics.logs") {
-                        if appState.logs.isEmpty {
-                            Text("diagnostics.noLogs")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(appState.logs) { log in
-                                VStack(alignment: .leading) {
-                                    Text(LocalizedStringKey(log.message))
-                                    Text(log.timestamp, style: .time)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                        Divider()
+                        Section("diagnostics.export") {
+                            Button("diagnostics.exportButton") { _ = appState.exportDiagnostics() }
+                                .accessibilityLabel(Text("diagnostics.exportButton"))
+                                .accessibilityHint(Text("diagnostics.exportButton.hint"))
                         }
                     }
-                    Section("diagnostics.export") {
-                        Button("diagnostics.exportButton") { _ = appState.exportDiagnostics() }
-                            .accessibilityLabel(Text("diagnostics.exportButton"))
-                            .accessibilityHint(Text("diagnostics.exportButton.hint"))
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .formStyle(.grouped)
             }
             .settingPagePadding()
         }
@@ -144,8 +151,7 @@ struct PermissionsDiagnosticsPage: View {
     }
 
     private func localizedCallbackDuration(_ milliseconds: Double) -> String {
-        let format = NSLocalizedString("diagnostics.callbackMillisecondsFormat", comment: "")
-        return String(format: format, milliseconds)
+        AppLocalization.format("diagnostics.callbackMillisecondsFormat", language: appState.settings.language, milliseconds)
     }
 
     @ViewBuilder

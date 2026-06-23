@@ -7,93 +7,98 @@ struct ButtonMappingPage: View {
     @State private var showingEditor = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            GlassCard {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle(isOn: boolBinding(\.buttonMappingEnabled)) {
-                        Text("mapping.enabled")
-                    }
-                    .accessibilityLabel(Text("mapping.enabled"))
-                    .accessibilityHint(Text("mapping.enabled.hint"))
-                    Text("mapping.privacyNote")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if let noticeKey = appState.featureAvailabilityNoticeKey {
+                    FeatureAvailabilityNoticeBanner(messageKey: noticeKey)
                 }
-            }
-            if let noticeKey = appState.featureAvailabilityNoticeKey {
-                FeatureAvailabilityNoticeBanner(messageKey: noticeKey)
-            }
-
-            List {
-                ForEach(appState.settings.buttonMappings) { mapping in
-                    HStack(spacing: 12) {
-                        Image(systemName: mapping.isEnabled ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(mapping.isEnabled ? .green : .secondary)
-                        let summary = ButtonMappingListSummary(mapping: mapping)
-                        let buttonTitle = String(format: NSLocalizedString("mapping.buttonFormat", comment: ""), mapping.mouseButtonNumber)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(summary.name ?? buttonTitle)
-                            Text(summary.name == nil ? summary.actionDisplayName : "\(buttonTitle) · \(summary.actionDisplayName)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            HStack(spacing: 10) {
-                                Label(LocalizedStringKey(summary.scopeKey), systemImage: "scope")
-                                Label(summary.note, systemImage: "note.text")
-                            }
+                GlassCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle(isOn: boolBinding(\.buttonMappingEnabled)) {
+                            Text("mapping.enabled")
+                        }
+                        .accessibilityLabel(Text("mapping.enabled"))
+                        .accessibilityHint(Text("mapping.enabled.hint"))
+                        Text("mapping.privacyNote")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button("mapping.edit") {
-                            editingMapping = mapping
-                            showingEditor = true
-                        }
-                        .accessibilityLabel(Text("mapping.edit"))
-                        .accessibilityHint(Text("mapping.edit.hint"))
-                        Button("mapping.delete", role: .destructive) {
-                            appState.removeMapping(mapping)
-                        }
-                        .accessibilityLabel(Text("mapping.delete"))
-                        .accessibilityHint(Text("mapping.delete.hint"))
                     }
-                    .padding(.vertical, 4)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(Text(mappingAccessibilityLabel(for: mapping)))
-                    .accessibilityHint(Text("mapping.row.accessibilityHint"))
                 }
-            }
-            .frame(minHeight: 240)
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(.white.opacity(0.16), lineWidth: 1)
-            }
+                GlassCard {
+                    VStack(spacing: 0) {
+                        ForEach(appState.settings.buttonMappings) { mapping in
+                            HStack(spacing: 12) {
+                                Image(systemName: mapping.isEnabled ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(mapping.isEnabled ? .green : .secondary)
+                                let summary = ButtonMappingListSummary(mapping: mapping, language: appState.settings.language)
+                                let buttonTitle = AppLocalization.format("mapping.buttonFormat", language: appState.settings.language, mapping.mouseButtonNumber)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(summary.name ?? buttonTitle)
+                                    Text(summary.name == nil ? summary.actionDisplayName : "\(buttonTitle) · \(summary.actionDisplayName)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    HStack(spacing: 10) {
+                                        Label(LocalizedStringKey(summary.scopeKey), systemImage: "scope")
+                                        Label(summary.note, systemImage: "note.text")
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button("mapping.edit") {
+                                    editingMapping = mapping
+                                    showingEditor = true
+                                }
+                                .accessibilityLabel(Text("mapping.edit"))
+                                .accessibilityHint(Text("mapping.edit.hint"))
+                                Button("mapping.delete", role: .destructive) {
+                                    appState.removeMapping(mapping)
+                                }
+                                .accessibilityLabel(Text("mapping.delete"))
+                                .accessibilityHint(Text("mapping.delete.hint"))
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(Text(mappingAccessibilityLabel(for: mapping)))
+                            .accessibilityHint(Text("mapping.row.accessibilityHint"))
+                            if mapping.id != appState.settings.buttonMappings.last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+                    .frame(minHeight: 240, alignment: .top)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                    }
+                }
 
-            HStack {
-                Button {
-                    editingMapping = nil
-                    showingEditor = true
-                } label: {
-                    Label("mapping.add", systemImage: "plus")
-                }
-                .accessibilityLabel(Text("mapping.add"))
-                .accessibilityHint(Text("mapping.add.hint"))
-                Spacer()
-                if let last = appState.lastMouseButtonNumber {
-                    Text(String(format: NSLocalizedString("mapping.lastButton", comment: ""), last))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                HStack {
+                    Button {
+                        editingMapping = nil
+                        showingEditor = true
+                    } label: {
+                        Label("mapping.add", systemImage: "plus")
+                    }
+                    .accessibilityLabel(Text("mapping.add"))
+                    .accessibilityHint(Text("mapping.add.hint"))
+                    Spacer()
+                    if let last = appState.lastMouseButtonNumber {
+                        Text(AppLocalization.format("mapping.lastButton", language: appState.settings.language, last))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
+            .settingPagePadding()
         }
-        .settingPagePadding()
         .navigationTitle("page.buttonMapping")
         .sheet(isPresented: $showingEditor) {
             MappingEditorSheet(mapping: editingMapping)
                 .environmentObject(appState)
+                .environment(\.locale, appState.locale)
         }
     }
 
@@ -102,13 +107,13 @@ struct ButtonMappingPage: View {
     }
 
     private func mappingAccessibilityLabel(for mapping: ButtonMapping) -> String {
-        let summary = ButtonMappingListSummary(mapping: mapping)
-        let format = NSLocalizedString("mapping.row.accessibilityLabelFormat", comment: "")
+        let summary = ButtonMappingListSummary(mapping: mapping, language: appState.settings.language)
+        let format = AppLocalization.string("mapping.row.accessibilityLabelFormat", language: appState.settings.language)
         return String(
             format: format,
             mapping.mouseButtonNumber,
             summary.actionDisplayName,
-            NSLocalizedString(summary.scopeKey, comment: ""),
+            AppLocalization.string(summary.scopeKey, language: appState.settings.language),
             summary.note
         )
     }
@@ -177,7 +182,7 @@ struct MappingEditorSheet: View {
             Picker("mapping.editor.mouseButton", selection: $mouseButtonNumber) {
                 Text("mapping.editor.mouseButton.unselected").tag(0)
                 ForEach(3...12, id: \.self) { number in
-                    Text(String(format: NSLocalizedString("mapping.buttonFormat", comment: ""), number)).tag(number)
+                    Text(AppLocalization.format("mapping.buttonFormat", language: appState.settings.language, number)).tag(number)
                 }
             }
             .accessibilityLabel(Text("mapping.editor.mouseButton"))
@@ -190,10 +195,10 @@ struct MappingEditorSheet: View {
                 .accessibilityHint(Text("mapping.editor.mouseButton.record.hint"))
                 .disabled(isMouseButtonRecording)
                 if let last = appState.lastMouseButtonNumber {
-                    Button(String(format: NSLocalizedString("mapping.useLastButton", comment: ""), last)) {
+                    Button(AppLocalization.format("mapping.useLastButton", language: appState.settings.language, last)) {
                         mouseButtonNumber = last
                     }
-                    .accessibilityLabel(Text(String(format: NSLocalizedString("mapping.useLastButton", comment: ""), last)))
+                    .accessibilityLabel(Text(AppLocalization.format("mapping.useLastButton", language: appState.settings.language, last)))
                     .accessibilityHint(Text("mapping.useLastButton.hint"))
                 }
             }
@@ -403,7 +408,7 @@ struct MappingEditorSheet: View {
         if actionSelection == .manualRecord, shortcut == nil, !shortcutAssembly.keys.isEmpty {
             return shortcutAssembly.displayName
         }
-        return currentAction?.displayName ?? "—"
+        return currentAction?.displayName(language: appState.settings.language) ?? "—"
     }
 
     private var selectedPresetDescriptionKey: String {

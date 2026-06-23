@@ -4,7 +4,6 @@ import CoreGraphics
 public struct AppAboutMetadata: Equatable, Sendable {
     var version: String
     var build: String
-    var gitCommit: String
     var copyright: String
     let licenseFileName = "LICENSES.md"
     let privacyFileName = "PRIVACY.md"
@@ -12,7 +11,6 @@ public struct AppAboutMetadata: Equatable, Sendable {
     init(infoDictionary: [String: Any]) {
         self.version = infoDictionary["CFBundleShortVersionString"] as? String ?? "1.0"
         self.build = infoDictionary["CFBundleVersion"] as? String ?? "1"
-        self.gitCommit = infoDictionary["MouseBridgeGitCommit"] as? String ?? "unknown"
         self.copyright = infoDictionary["NSHumanReadableCopyright"] as? String ?? "© 2026 PHalfStudio"
     }
 
@@ -46,6 +44,25 @@ public enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
         case .zhHans: "language.zhHans"
         case .en: "language.en"
         }
+    }
+}
+
+enum AppLocalization {
+    static func string(_ key: String, language: AppLanguage) -> String {
+        bundle(for: language).localizedString(forKey: key, value: nil, table: nil)
+    }
+
+    static func format(_ key: String, language: AppLanguage, _ arguments: CVarArg...) -> String {
+        String(format: string(key, language: language), arguments: arguments)
+    }
+
+    private static func bundle(for language: AppLanguage) -> Bundle {
+        guard let identifier = language.localeIdentifier,
+              let path = Bundle.main.path(forResource: identifier, ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            return .main
+        }
+        return bundle
     }
 }
 
@@ -361,6 +378,10 @@ public enum SystemMappingAction: String, Codable, CaseIterable, Identifiable, Se
         String(localized: String.LocalizationValue(titleKey))
     }
 
+    func displayName(language: AppLanguage) -> String {
+        AppLocalization.string(titleKey, language: language)
+    }
+
     var fallbackShortcut: KeyboardShortcutDefinition? {
         switch self {
         case .spaceLeft:
@@ -429,6 +450,15 @@ public enum ButtonMappingAction: Codable, Equatable, Hashable, Sendable {
             shortcut.displayName
         case .systemAction(let action):
             action.displayName
+        }
+    }
+
+    func displayName(language: AppLanguage) -> String {
+        switch self {
+        case .keyboardShortcut(let shortcut):
+            shortcut.displayName
+        case .systemAction(let action):
+            action.displayName(language: language)
         }
     }
 
@@ -772,10 +802,10 @@ public struct ButtonMappingListSummary: Equatable, Sendable {
     var scopeKey: String
     var note: String
 
-    init(mapping: ButtonMapping) {
+    init(mapping: ButtonMapping, language: AppLanguage = .system) {
         let trimmedName = mapping.name.trimmingCharacters(in: .whitespacesAndNewlines)
         name = trimmedName.isEmpty ? nil : trimmedName
-        actionDisplayName = mapping.action.displayName
+        actionDisplayName = mapping.action.displayName(language: language)
         scopeKey = mapping.scope == "global" ? "mapping.scope.global" : "mapping.scope.custom"
         let trimmedNote = mapping.note.trimmingCharacters(in: .whitespacesAndNewlines)
         note = trimmedNote.isEmpty ? "—" : trimmedNote

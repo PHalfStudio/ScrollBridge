@@ -29,8 +29,11 @@ struct MouseBridgeApp: App {
             }
             .environmentObject(appState)
             .frame(minWidth: 760, minHeight: 500)
+            .settingsWindowToolbarChrome()
+            .background(SettingsWindowChromeApplier(language: appState.settings.language))
         }
         .defaultSize(width: 820, height: 560)
+        .windowToolbarStyle(.unified(showsTitle: true))
     }
 }
 
@@ -45,5 +48,71 @@ struct AppBootstrapView<Content: View>: View {
     var body: some View {
         content()
             .onAppear { appState.bootstrap() }
+    }
+}
+
+private extension View {
+    func settingsWindowToolbarChrome() -> some View {
+        self
+            // 不要再 hidden。让 macOS 26 自己决定 toolbar/titlebar 背景。
+            .toolbarBackgroundVisibility(.automatic, for: .windowToolbar)
+    }
+}
+
+private struct SettingsWindowChromeApplier: NSViewRepresentable {
+    let language: AppLanguage
+
+    func makeNSView(context: Context) -> WindowChromeView {
+        let view = WindowChromeView()
+        view.language = language
+        return view
+    }
+
+    func updateNSView(_ nsView: WindowChromeView, context: Context) {
+        nsView.language = language
+        nsView.apply()
+    }
+
+    final class WindowChromeView: NSView {
+        var language: AppLanguage = .system
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            apply()
+        }
+
+        func apply() {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let window = self.window else { return }
+
+                Self.configure(window, language: language)
+
+                DispatchQueue.main.async {
+                    Self.configure(window, language: self.language)
+                }
+            }
+        }
+
+        private static func configure(_ window: NSWindow, language: AppLanguage) {
+            window.title = AppLocalization.string("window.settings", language: language)
+            window.styleMask.insert(.fullSizeContentView)
+            window.styleMask.insert(.resizable)
+            window.styleMask.remove(.fullScreen)
+            window.collectionBehavior.insert(.fullScreenNone)
+            window.collectionBehavior.remove(.fullScreenPrimary)
+            window.collectionBehavior.remove(.fullScreenAuxiliary)
+
+            window.standardWindowButton(.zoomButton)?.isEnabled = false
+
+            // 不要强制透明，否则 titlebar 自己完全不画背景。
+            // 背景、模糊、渐变交给系统 toolbar + scroll edge effect。
+            window.titlebarAppearsTransparent = false
+
+            // 去掉底部横线。不要再用 NSToolbar.showsBaselineSeparator。
+            window.titlebarSeparatorStyle = .none
+
+            // 统一 titlebar / toolbar 样式。
+            window.toolbarStyle = .unified
+        }
     }
 }

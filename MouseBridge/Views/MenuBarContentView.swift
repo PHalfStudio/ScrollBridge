@@ -48,13 +48,6 @@ struct MenuBarContentView: View {
             }
             .accessibilityLabel(Text("menu.buttonMapping"))
             .accessibilityHint(Text("menu.buttonMapping.hint"))
-            if !appState.permissions.canProcessEvents {
-                Button("menu.openPermissionGuide") {
-                    showSettings(page: .permissions)
-                }
-                .accessibilityLabel(Text("menu.openPermissionGuide"))
-                .accessibilityHint(Text("menu.openPermissionGuide.hint"))
-            }
             Divider()
             Button("menu.openSettings") { showSettings() }
                 .accessibilityLabel(Text("menu.openSettings"))

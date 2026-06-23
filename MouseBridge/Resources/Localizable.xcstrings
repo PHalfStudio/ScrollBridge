@@ -103,22 +103,6 @@
         }
       }
     },
-    "about.gitCommit" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Git commit"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Git 提交"
-          }
-        }
-      }
-    },
     "about.github" : {
       "localizations" : {
         "en" : {
@@ -737,6 +721,7 @@
       }
     },
     "diagnostics.callbackMillisecondsFormat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2082,6 +2067,7 @@
       }
     },
     "mapping.buttonFormat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2978,6 +2964,7 @@
       }
     },
     "mapping.lastButton" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3196,6 +3183,7 @@
       }
     },
     "mapping.row.accessibilityLabelFormat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3415,6 +3403,7 @@
       }
     },
     "mapping.useLastButton" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3511,6 +3500,7 @@
       }
     },
     "menu.openPermissionGuide" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3527,6 +3517,7 @@
       }
     },
     "menu.openPermissionGuide.hint" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

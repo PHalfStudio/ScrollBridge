@@ -4,22 +4,39 @@ struct DevicesPage: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("devices.description")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("devices.refresh") { appState.refreshDevices() }
-                    .accessibilityLabel(Text("devices.refresh"))
-                    .accessibilityHint(Text("devices.refresh.hint"))
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                GlassCard {
+                    HStack {
+                        Text("devices.description")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("devices.refresh") { appState.refreshDevices() }
+                            .accessibilityLabel(Text("devices.refresh"))
+                            .accessibilityHint(Text("devices.refresh.hint"))
+                    }
+                }
 
-            List(appState.devices) { device in
-                DeviceRow(device: device)
-                    .environmentObject(appState)
+                GlassCard {
+                    if appState.devices.isEmpty {
+                        Text("diagnostics.noDevices")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(appState.devices) { device in
+                                DeviceRow(device: device)
+                                    .environmentObject(appState)
+                                if device.id != appState.devices.last?.id {
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                }
             }
+            .settingPagePadding()
         }
-        .settingPagePadding()
         .navigationTitle("page.devices")
         .onAppear { appState.refreshDevices() }
     }
