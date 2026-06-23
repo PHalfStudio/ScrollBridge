@@ -1,6 +1,6 @@
 # Architecture
 
-ScrollBridge 使用 SwiftUI（Swift 用户界面）加少量 AppKit（macOS 原生应用框架），核心分为四层。
+MouseBridge 使用 SwiftUI（Swift 用户界面）加少量 AppKit（macOS 原生应用框架），核心分为四层。
 
 ```mermaid
 flowchart TB

@@ -2,8 +2,8 @@
 
 ## 当前产物
 
-- build/ScrollBridge.app
-- build/ScrollBridge.dmg
+- build/MouseBridge.app
+- build/MouseBridge.dmg
 
 当前构建使用 Apple Development（苹果开发证书）签名，应用二进制包含 arm64（苹果芯片）和 x86_64（英特尔）两种架构，可用于本机调试和验证。DMG（磁盘映像）已生成并通过 hdiutil verify（磁盘映像校验）。
 

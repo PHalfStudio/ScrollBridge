@@ -170,7 +170,7 @@ final class UpdateCheckPolicy {
 }
 
 final class UpdateChecker {
-    static let latestReleaseURL = URL(string: "https://api.github.com/repos/PHalfStudio/ScrollBridge/releases/latest")!
+    static let latestReleaseURL = URL(string: "https://api.github.com/repos/PHalfStudio/MouseBridge/releases/latest")!
 
     private let policy: UpdateCheckPolicy
     private let decoder: JSONDecoder
@@ -190,7 +190,7 @@ final class UpdateChecker {
         request.timeoutInterval = 12
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-        request.setValue("ScrollBridge", forHTTPHeaderField: "User-Agent")
+        request.setValue("MouseBridge", forHTTPHeaderField: "User-Agent")
         if let eTag = policy.cachedETag {
             request.setValue(eTag, forHTTPHeaderField: "If-None-Match")
         }

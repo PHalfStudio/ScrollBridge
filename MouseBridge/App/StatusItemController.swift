@@ -1,13 +1,12 @@
 import AppKit
 import Combine
-import SwiftUI
 
 @MainActor
 final class StatusItemController: NSObject {
     private let appState: AppState
     private var statusItem: NSStatusItem?
-    private var settingsWindow: NSWindow?
-    private var aboutWindow: NSWindow?
+    private var openSettingsWindowAction: (() -> Void)?
+    private var hasScheduledInitialSettingsWindowCheck = false
     private var cancellables: Set<AnyCancellable> = []
 
     init(appState: AppState) {
@@ -16,7 +15,15 @@ final class StatusItemController: NSObject {
         appState.bootstrap()
         configureStateObservation()
         refreshStatusItem()
-        openInitialSettingsWindowIfNeeded()
+    }
+
+    func configureSettingsWindowOpener(_ action: @escaping () -> Void) {
+        openSettingsWindowAction = action
+        guard !hasScheduledInitialSettingsWindowCheck else { return }
+        hasScheduledInitialSettingsWindowCheck = true
+        DispatchQueue.main.async { [weak self] in
+            self?.openInitialSettingsWindowIfNeeded()
+        }
     }
 
     private func configureStateObservation() {
@@ -24,7 +31,6 @@ final class StatusItemController: NSObject {
             .sink { [weak self] _ in
                 Task { @MainActor in
                     self?.refreshStatusItem()
-                    self?.updateWindowTitles()
                 }
             }
             .store(in: &cancellables)
@@ -169,7 +175,7 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func openAbout() {
-        openAboutWindow()
+        openSettings(page: .about)
     }
 
     @objc private func quit() {
@@ -185,58 +191,7 @@ final class StatusItemController: NSObject {
     }
 
     private func openSettingsWindow() {
-        let window = settingsWindow ?? makeSettingsWindow()
-        settingsWindow = window
-        window.makeKeyAndOrderFront(nil)
-        NSApplication.shared.activate(ignoringOtherApps: true)
-    }
-
-    private func openAboutWindow() {
-        let window = aboutWindow ?? makeAboutWindow()
-        aboutWindow = window
-        window.makeKeyAndOrderFront(nil)
-        NSApplication.shared.activate(ignoringOtherApps: true)
-    }
-
-    private func makeSettingsWindow() -> NSWindow {
-        let view = SettingsStatusWindowRootView()
-            .environmentObject(appState)
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 820, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = localized("window.settings")
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.toolbarStyle = .unified
-        window.contentView = NSHostingView(rootView: view)
-        window.minSize = NSSize(width: 760, height: 500)
-        window.center()
-        window.isReleasedWhenClosed = false
-        return window
-    }
-
-    private func makeAboutWindow() -> NSWindow {
-        let view = AboutStatusWindowRootView()
-            .environmentObject(appState)
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 460),
-            styleMask: [.titled, .closable, .miniaturizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = localized("window.about")
-        window.contentView = NSHostingView(rootView: view)
-        window.center()
-        window.isReleasedWhenClosed = false
-        return window
-    }
-
-    private func updateWindowTitles() {
-        settingsWindow?.title = localized("window.settings")
-        aboutWindow?.title = localized("window.about")
+        openSettingsWindowAction?()
     }
 
     private func localized(_ key: String) -> String {
@@ -247,33 +202,5 @@ final class StatusItemController: NSObject {
             return NSLocalizedString(key, comment: "")
         }
         return bundle.localizedString(forKey: key, value: nil, table: nil)
-    }
-}
-
-private struct SettingsStatusWindowRootView: View {
-    @EnvironmentObject private var appState: AppState
-
-    var body: some View {
-        AppBootstrapView {
-            SettingsRootView()
-                .environmentObject(appState)
-                .environment(\.locale, appState.locale)
-        }
-        .environmentObject(appState)
-        .frame(minWidth: 760, minHeight: 500)
-    }
-}
-
-private struct AboutStatusWindowRootView: View {
-    @EnvironmentObject private var appState: AppState
-
-    var body: some View {
-        AppBootstrapView {
-            AboutPage()
-                .environmentObject(appState)
-                .environment(\.locale, appState.locale)
-                .frame(width: 520, height: 460)
-        }
-        .environmentObject(appState)
     }
 }

@@ -12,8 +12,10 @@ struct PermissionsDiagnosticsPage: View {
                             .font(.title3.weight(.semibold))
                         Text("permissions.privacyCopy")
                             .foregroundStyle(.secondary)
-                        PermissionRow(kind: .inputMonitoring, state: appState.permissions.inputMonitoring)
-                        PermissionRow(kind: .accessibility, state: appState.permissions.accessibility)
+                        PermissionRowsGrid(
+                            inputMonitoring: appState.permissions.inputMonitoring,
+                            accessibility: appState.permissions.accessibility
+                        )
                         HStack {
                             Button("permissions.recheck") { appState.refreshAll() }
                                 .accessibilityLabel(Text("permissions.recheck"))
@@ -164,34 +166,52 @@ struct PermissionsDiagnosticsPage: View {
     }
 }
 
-struct PermissionRow: View {
+struct PermissionRowsGrid: View {
     @EnvironmentObject private var appState: AppState
-    let kind: PermissionKind
-    let state: PermissionState
+    let inputMonitoring: PermissionState
+    let accessibility: PermissionState
 
     var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                StatusPill(
-                    titleKey: LocalizedStringKey(state.titleKey),
-                    systemImage: state == .authorized ? "checkmark.shield" : "exclamationmark.triangle",
-                    tint: state == .authorized ? .green : .orange
-                )
-                if let hintKey = PermissionStateActionHint.messageKey(for: state) {
-                    Text(LocalizedStringKey(hintKey))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Text(kind == .inputMonitoring ? "permissions.inputMonitoring.desc" : "permissions.accessibility.desc")
-            Spacer()
-            Button("permissions.request") { appState.requestPermission(kind) }
-                .accessibilityLabel(Text(LocalizedStringKey(permissionActionLabelKey)))
-                .accessibilityHint(Text(LocalizedStringKey(permissionActionHintKey)))
+        Grid(alignment: .topLeading, horizontalSpacing: 16, verticalSpacing: 8) {
+            permissionGridRow(kind: .inputMonitoring, state: inputMonitoring)
+            permissionHintRow(for: inputMonitoring)
+            permissionGridRow(kind: .accessibility, state: accessibility)
+            permissionHintRow(for: accessibility)
         }
     }
 
-    private var permissionActionLabelKey: String {
+    @ViewBuilder
+    private func permissionGridRow(kind: PermissionKind, state: PermissionState) -> some View {
+        GridRow {
+            StatusPill(
+                titleKey: LocalizedStringKey(state.titleKey),
+                systemImage: state == .authorized ? "checkmark.shield" : "exclamationmark.triangle",
+                tint: state == .authorized ? .green : .orange
+            )
+            .gridColumnAlignment(.leading)
+            Text(kind == .inputMonitoring ? "permissions.inputMonitoring.desc" : "permissions.accessibility.desc")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .gridColumnAlignment(.leading)
+            Button("permissions.request") { appState.requestPermission(kind) }
+                .accessibilityLabel(Text(LocalizedStringKey(permissionActionLabelKey(for: kind))))
+                .accessibilityHint(Text(LocalizedStringKey(permissionActionHintKey(for: kind))))
+                .gridColumnAlignment(.trailing)
+        }
+    }
+
+    @ViewBuilder
+    private func permissionHintRow(for state: PermissionState) -> some View {
+        if let hintKey = PermissionStateActionHint.messageKey(for: state) {
+            GridRow {
+                Text(LocalizedStringKey(hintKey))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .gridCellColumns(3)
+            }
+        }
+    }
+
+    private func permissionActionLabelKey(for kind: PermissionKind) -> String {
         switch kind {
         case .inputMonitoring:
             "permissions.request.inputMonitoring"
@@ -200,7 +220,7 @@ struct PermissionRow: View {
         }
     }
 
-    private var permissionActionHintKey: String {
+    private func permissionActionHintKey(for kind: PermissionKind) -> String {
         switch kind {
         case .inputMonitoring:
             "permissions.request.inputMonitoring.hint"

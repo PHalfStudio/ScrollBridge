@@ -25,9 +25,9 @@ xcodebuild build-for-testing -project MouseBridge.xcodeproj -scheme MouseBridge 
 DYLD_FALLBACK_LIBRARY_PATH=/tmp/MouseBridgeUnitDerivedData/Build/Products/Debug/MouseBridge.app/Contents/MacOS $(xcrun -f xctest) /tmp/MouseBridgeUnitDerivedData/Build/Products/Debug/MouseBridge.app/Contents/PlugIns/MouseBridgeTests.xctest
 xcodebuild build-for-testing -project MouseBridge.xcodeproj -scheme MouseBridge -destination 'platform=macOS,arch=arm64' -derivedDataPath /tmp/MouseBridgeUISchemeDerivedData
 xcodebuild -project MouseBridge.xcodeproj -scheme MouseBridge -configuration Release -destination 'generic/platform=macOS' -derivedDataPath /tmp/MouseBridgeReleaseDerivedData build
-codesign --verify --deep --strict --verbose=2 build/ScrollBridge.app
-hdiutil create -volname ScrollBridge -srcfolder build/ScrollBridge.app -format UDZO build/ScrollBridge.dmg
-hdiutil verify build/ScrollBridge.dmg
+codesign --verify --deep --strict --verbose=2 build/MouseBridge.app
+hdiutil create -volname MouseBridge -srcfolder build/MouseBridge.app -format UDZO build/MouseBridge.dmg
+hdiutil verify build/MouseBridge.dmg
 ```
 
 ## 说明

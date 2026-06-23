@@ -536,7 +536,7 @@ final class KeyboardShortcutInjector: @unchecked Sendable {
     private let marker: Int64
     private let postingProfile: ShortcutPostingProfile
     private let planner = ShortcutEventPlanner()
-    private let postingQueue = DispatchQueue(label: "cn.phalfstudio.ScrollBridge.shortcutPosting")
+    private let postingQueue = DispatchQueue(label: "cn.phalfstudio.MouseBridge.shortcutPosting")
 
     init(marker: Int64, postingProfile: ShortcutPostingProfile = .globalKeyboardShortcut) {
         self.marker = marker

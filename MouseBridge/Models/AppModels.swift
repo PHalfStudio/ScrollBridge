@@ -8,19 +8,12 @@ public struct AppAboutMetadata: Equatable, Sendable {
     var copyright: String
     let licenseFileName = "LICENSES.md"
     let privacyFileName = "PRIVACY.md"
-    let referenceProjectNames = [
-        "Mac Mouse Fix",
-        "Scroll Reverser",
-        "Mos",
-        "LinearMouse",
-        "Karabiner-Elements"
-    ]
 
     init(infoDictionary: [String: Any]) {
         self.version = infoDictionary["CFBundleShortVersionString"] as? String ?? "1.0"
         self.build = infoDictionary["CFBundleVersion"] as? String ?? "1"
-        self.gitCommit = infoDictionary["ScrollBridgeGitCommit"] as? String ?? "unknown"
-        self.copyright = infoDictionary["NSHumanReadableCopyright"] as? String ?? "© 2026 phalfstudio"
+        self.gitCommit = infoDictionary["MouseBridgeGitCommit"] as? String ?? "unknown"
+        self.copyright = infoDictionary["NSHumanReadableCopyright"] as? String ?? "© 2026 PHalfStudio"
     }
 
     static var current: AppAboutMetadata {

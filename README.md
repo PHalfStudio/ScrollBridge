@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="MouseBridge/Assets.xcassets/AppIcon.appiconset/AppIcon-256.png" width="112" height="112" alt="ScrollBridge App Icon">
+  <img src="MouseBridge/Assets.xcassets/AppIcon.appiconset/AppIcon-256.png" width="112" height="112" alt="MouseBridge App Icon">
 </p>
 
-<h1 align="center">ScrollBridge</h1>
+<h1 align="center">MouseBridge</h1>
 
 <p align="center">
   本地运行的 macOS 菜单栏鼠标工具，让普通鼠标滚轮、平滑滚动和侧键映射更符合个人习惯。
@@ -10,7 +10,7 @@
 
 <div align="center">
 
-[中文](https://github.com/PHalfStudio/ScrollBridge/blob/main/README.md) · [English](https://github.com/PHalfStudio/ScrollBridge/blob/main/README_EN.md)
+[中文](https://github.com/PHalfStudio/MouseBridge/blob/main/README.md) · [English](https://github.com/PHalfStudio/MouseBridge/blob/main/README_EN.md)
 
 </div>
 
@@ -18,7 +18,7 @@
 
 ## 简介
 
-ScrollBridge 是一个原生 macOS 菜单栏 App，面向同时使用普通鼠标、触控板和多键鼠标的用户。它默认只处理物理鼠标滚轮，尽量保留触控板自然滚动体验，并提供侧键映射、平滑滚动、设备诊断和排除 App 等能力。
+MouseBridge 是一个原生 macOS 菜单栏 App，面向同时使用普通鼠标、触控板和多键鼠标的用户。它默认只处理物理鼠标滚轮，尽量保留触控板自然滚动体验，并提供侧键映射、平滑滚动、设备诊断和排除 App 等能力。
 
 项目目标是保持本地、透明、可验证：输入事件只在本机处理，不上传输入内容，不保存键入文本，不读取剪贴板。
 
@@ -38,18 +38,18 @@ ScrollBridge 是一个原生 macOS 菜单栏 App，面向同时使用普通鼠�
 
 请前往 GitHub Releases 下载最新版本：
 
-[latest](https://github.com/PHalfStudio/ScrollBridge/releases/latest)
+[latest](https://github.com/PHalfStudio/MouseBridge/releases/latest)
 
 使用方式：
 
-1. 下载最新的 ScrollBridge DMG（磁盘映像）文件。
-2. 打开 DMG（磁盘映像），将 ScrollBridge 拖入 `/Applications`。
+1. 下载最新的 MouseBridge DMG（磁盘映像）文件。
+2. 打开 DMG（磁盘映像），将 MouseBridge 拖入 `/Applications`。
 3. 首次启动后按引导授予输入监控和辅助功能权限。
 4. 权限变更后，按 macOS 提示重启 App 或重新登录。
 
 ## 权限说明
 
-ScrollBridge 需要以下权限：
+MouseBridge 需要以下权限：
 
 - 输入监控：读取鼠标滚轮、侧键和录制快捷键所需的键盘事件。
 - 辅助功能：用于发送用户配置的滚动和快捷键事件。
@@ -94,8 +94,8 @@ DYLD_FALLBACK_LIBRARY_PATH=/tmp/MouseBridgeUnitDerivedData/Build/Products/Debug/
 ## 卸载
 
 1. 退出菜单栏 App。
-2. 删除 `/Applications/ScrollBridge.app`。
-3. 在“系统设置 > 隐私与安全性 > 输入监控 / 辅助功能”中移除 ScrollBridge。
+2. 删除 `/Applications/MouseBridge.app`。
+3. 在“系统设置 > 隐私与安全性 > 输入监控 / 辅助功能”中移除 MouseBridge。
 4. 如需清理配置，删除 `~/Library/Preferences/cn.phalfstudio.MouseBridge.plist`。
 
 ## 许可证
@@ -104,7 +104,7 @@ DYLD_FALLBACK_LIBRARY_PATH=/tmp/MouseBridgeUnitDerivedData/Build/Products/Debug/
 
 ## 致谢与友链
 
-ScrollBridge 参考了 Mac Mouse Fix、Scroll Reverser、Mos、LinearMouse 和 Karabiner-Elements 等项目的公开设计经验。
+MouseBridge 参考了 Mac Mouse Fix、Scroll Reverser、Mos、LinearMouse 和 Karabiner-Elements 等项目的公开设计经验。
 
 <img src="docs/images/linuxdo.png" width="20" height="20" alt="linux.do Logo"> [linux.do](https://linux.do)
 真诚、友善、团结、专业，共建你我引以为荣之社区。

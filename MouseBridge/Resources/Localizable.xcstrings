@@ -12,13 +12,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge app icon"
+            "value" : "MouseBridge app icon"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge 应用图标"
+            "value" : "MouseBridge 应用图标"
           }
         }
       }
@@ -60,13 +60,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Check the latest ScrollBridge release on GitHub."
+            "value" : "Check the latest MouseBridge release on GitHub."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "访问 GitHub 检查 ScrollBridge 最新版本。"
+            "value" : "访问 GitHub 检查 MouseBridge 最新版本。"
           }
         }
       }
@@ -332,13 +332,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge"
+            "value" : "MouseBridge"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge"
+            "value" : "MouseBridge"
           }
         }
       }
@@ -611,13 +611,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use the picker to override how ScrollBridge treats this device."
+            "value" : "Use the picker to override how MouseBridge treats this device."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用选择器调整 ScrollBridge 对此设备的处理方式。"
+            "value" : "使用选择器调整 MouseBridge 对此设备的处理方式。"
           }
         }
       }
@@ -773,13 +773,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "These apps may also change scrolling or mouse buttons. ScrollBridge only shows this hint and will not close them."
+            "value" : "These apps may also change scrolling or mouse buttons. MouseBridge only shows this hint and will not close them."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这些 App 也可能修改滚动或鼠标按键。ScrollBridge 只显示提示，不会关闭它们。"
+            "value" : "这些 App 也可能修改滚动或鼠标按键。MouseBridge 只显示提示，不会关闭它们。"
           }
         }
       }
@@ -1068,13 +1068,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge is quitting and event monitoring has stopped."
+            "value" : "MouseBridge is quitting and event monitoring has stopped."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge 正在退出，事件监听已停止。"
+            "value" : "MouseBridge 正在退出，事件监听已停止。"
           }
         }
       }
@@ -1748,7 +1748,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登录时启动 ScrollBridge"
+            "value" : "登录时启动 MouseBridge"
           }
         }
       }
@@ -1790,13 +1790,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enable ScrollBridge"
+            "value" : "Enable MouseBridge"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用 ScrollBridge"
+            "value" : "启用 MouseBridge"
           }
         }
       }
@@ -1838,13 +1838,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep the ScrollBridge menu available from the menu bar."
+            "value" : "Keep the MouseBridge menu available from the menu bar."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保持可以从菜单栏打开 ScrollBridge。"
+            "value" : "保持可以从菜单栏打开 MouseBridge。"
           }
         }
       }
@@ -1870,13 +1870,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reset ScrollBridge settings to their default values."
+            "value" : "Reset MouseBridge settings to their default values."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将 ScrollBridge 设置恢复为默认值。"
+            "value" : "将 MouseBridge 设置恢复为默认值。"
           }
         }
       }
@@ -3451,13 +3451,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "About ScrollBridge"
+            "value" : "About MouseBridge"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关于 ScrollBridge"
+            "value" : "关于 MouseBridge"
           }
         }
       }
@@ -3563,13 +3563,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open the full ScrollBridge settings window."
+            "value" : "Open the full MouseBridge settings window."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开完整的 ScrollBridge 设置窗口。"
+            "value" : "打开完整的 MouseBridge 设置窗口。"
           }
         }
       }
@@ -3611,13 +3611,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quit ScrollBridge"
+            "value" : "Quit MouseBridge"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出 ScrollBridge"
+            "value" : "退出 MouseBridge"
           }
         }
       }
@@ -3627,13 +3627,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stop ScrollBridge and restore normal system input."
+            "value" : "Stop MouseBridge and restore normal system input."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出 ScrollBridge 并恢复系统默认输入。"
+            "value" : "退出 MouseBridge 并恢复系统默认输入。"
           }
         }
       }
@@ -3899,13 +3899,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge runs locally from the menu bar and improves physical mouse scrolling on macOS."
+            "value" : "MouseBridge runs locally from the menu bar and improves physical mouse scrolling on macOS."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge 在本机以菜单栏形式运行，用于改善 macOS 上普通鼠标的滚动体验。"
+            "value" : "MouseBridge 在本机以菜单栏形式运行，用于改善 macOS 上普通鼠标的滚动体验。"
           }
         }
       }
@@ -3915,13 +3915,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Welcome to ScrollBridge"
+            "value" : "Welcome to MouseBridge"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "欢迎使用 ScrollBridge"
+            "value" : "欢迎使用 MouseBridge"
           }
         }
       }
@@ -4257,13 +4257,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quit and reopen ScrollBridge for the new permission to take effect."
+            "value" : "Quit and reopen MouseBridge for the new permission to take effect."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请退出并重新打开 ScrollBridge，让新权限生效。"
+            "value" : "请退出并重新打开 MouseBridge，让新权限生效。"
           }
         }
       }
@@ -4370,13 +4370,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge processes input events locally. It does not upload input, store typed text, or read the clipboard."
+            "value" : "MouseBridge processes input events locally. It does not upload input, store typed text, or read the clipboard."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge 只在本机处理输入事件，不上传输入内容，不保存键入文本，也不读取剪贴板。"
+            "value" : "MouseBridge 只在本机处理输入事件，不上传输入内容，不保存键入文本，也不读取剪贴板。"
           }
         }
       }
@@ -4502,13 +4502,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To revoke ScrollBridge permissions, open System Settings > Privacy & Security, then remove ScrollBridge from Input Monitoring and Accessibility. Reopen the app and recheck permissions afterward."
+            "value" : "To revoke MouseBridge permissions, open System Settings > Privacy & Security, then remove MouseBridge from Input Monitoring and Accessibility. Reopen the app and recheck permissions afterward."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "要撤销 ScrollBridge 权限，请打开“系统设置 > 隐私与安全性”，在“输入监控”和“辅助功能”中移除 ScrollBridge。之后重新打开应用并重新检测权限。"
+            "value" : "要撤销 MouseBridge 权限，请打开“系统设置 > 隐私与安全性”，在“输入监控”和“辅助功能”中移除 MouseBridge。之后重新打开应用并重新检测权限。"
           }
         }
       }
@@ -5358,13 +5358,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A new ScrollBridge version is available"
+            "value" : "A new MouseBridge version is available"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "发现 ScrollBridge 新版本"
+            "value" : "发现 MouseBridge 新版本"
           }
         }
       }
@@ -5437,17 +5437,18 @@
       }
     },
     "window.about" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "About ScrollBridge"
+            "value" : "About MouseBridge"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关于 ScrollBridge"
+            "value" : "关于 MouseBridge"
           }
         }
       }
@@ -5457,13 +5458,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge Settings"
+            "value" : "MouseBridge Settings"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ScrollBridge 设置"
+            "value" : "MouseBridge 设置"
           }
         }
       }

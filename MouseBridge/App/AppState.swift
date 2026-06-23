@@ -315,7 +315,7 @@ final class AppState: ObservableObject {
             recentLogs: logs
         )
         guard let data = try? JSONEncoder.pretty.encode(payload) else { return nil }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("ScrollBridge-Diagnostics-\(Int(Date().timeIntervalSince1970)).json")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("MouseBridge-Diagnostics-\(Int(Date().timeIntervalSince1970)).json")
         do {
             try data.write(to: url, options: .atomic)
             NSWorkspace.shared.activateFileViewerSelecting([url])

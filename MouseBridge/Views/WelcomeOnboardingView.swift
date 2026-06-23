@@ -25,8 +25,10 @@ struct WelcomeOnboardingView: View {
             if step == 2 {
                 GlassCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        PermissionRow(kind: .inputMonitoring, state: appState.permissions.inputMonitoring)
-                        PermissionRow(kind: .accessibility, state: appState.permissions.accessibility)
+                        PermissionRowsGrid(
+                            inputMonitoring: appState.permissions.inputMonitoring,
+                            accessibility: appState.permissions.accessibility
+                        )
                         HStack {
                             Button("permissions.openInputMonitoring") { appState.openPermissionSettings(.inputMonitoring) }
                                 .accessibilityLabel(Text("permissions.openInputMonitoring"))

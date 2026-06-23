@@ -1,2 +1,2 @@
-"NSInputMonitoringUsageDescription" = "ScrollBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.";
-"NSAccessibilityUsageDescription" = "ScrollBridge uses Accessibility only to filter mouse events and send shortcuts that you explicitly configure. It does not upload input, does not save typed text, and does not read the clipboard.";
+"NSInputMonitoringUsageDescription" = "MouseBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.";
+"NSAccessibilityUsageDescription" = "MouseBridge uses Accessibility only to filter mouse events and send shortcuts that you explicitly configure. It does not upload input, does not save typed text, and does not read the clipboard.";

@@ -1,2 +1,2 @@
-"NSInputMonitoringUsageDescription" = "ScrollBridge 使用输入监控权限在本机识别物理鼠标滚轮和按键事件。应用不会上传输入内容，不会保存键入文本，不会读取剪贴板。";
-"NSAccessibilityUsageDescription" = "ScrollBridge 仅使用辅助功能权限过滤鼠标事件，并发送你明确配置的快捷键。应用不会上传输入内容，不会保存键入文本，不会读取剪贴板。";
+"NSInputMonitoringUsageDescription" = "MouseBridge 使用输入监控权限在本机识别物理鼠标滚轮和按键事件。应用不会上传输入内容，不会保存键入文本，不会读取剪贴板。";
+"NSAccessibilityUsageDescription" = "MouseBridge 仅使用辅助功能权限过滤鼠标事件，并发送你明确配置的快捷键。应用不会上传输入内容，不会保存键入文本，不会读取剪贴板。";

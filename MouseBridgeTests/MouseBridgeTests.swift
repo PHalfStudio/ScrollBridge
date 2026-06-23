@@ -52,7 +52,7 @@ struct MouseBridgeCoreTests {
         let metadata = AppAboutMetadata(infoDictionary: [
             "CFBundleShortVersionString": "1.2.3",
             "CFBundleVersion": "45",
-            "ScrollBridgeGitCommit": "abc1234",
+            "MouseBridgeGitCommit": "abc1234",
             "NSHumanReadableCopyright": "© 2026 Example"
         ])
         #expect(metadata.version == "1.2.3")
@@ -69,7 +69,7 @@ struct MouseBridgeCoreTests {
         #expect(metadata.version == "1.0")
         #expect(metadata.build == "1")
         #expect(metadata.gitCommit == "unknown")
-        #expect(metadata.copyright == "© 2026 phalfstudio")
+        #expect(metadata.copyright == "© 2026 PHalfStudio")
     }
 
     @Test func aboutPageShowsBuildNumberSeparately() throws {
@@ -127,7 +127,7 @@ struct MouseBridgeCoreTests {
           "tag_name": "v1.0(2)",
           "name": "v1.0",
           "body": "- Improved update checks",
-          "html_url": "https://github.com/PHalfStudio/ScrollBridge/releases/tag/v1.0(2)"
+          "html_url": "https://github.com/PHalfStudio/MouseBridge/releases/tag/v1.0(2)"
         }
         """#.utf8)
         let payload = try JSONDecoder().decode(GitHubLatestReleasePayload.self, from: data)
@@ -140,7 +140,7 @@ struct MouseBridgeCoreTests {
         #expect(release.buildNumber == 2)
         #expect(release.name == "v1.0")
         #expect(release.body == "- Improved update checks")
-        #expect(release.htmlURL.absoluteString == "https://github.com/PHalfStudio/ScrollBridge/releases/tag/v1.0(2)")
+        #expect(release.htmlURL.absoluteString == "https://github.com/PHalfStudio/MouseBridge/releases/tag/v1.0(2)")
         #expect(UpdateCheckEvaluator.evaluate(payload: payload, currentBuildNumber: 2) == .upToDate)
     }
 
@@ -173,7 +173,7 @@ struct MouseBridgeCoreTests {
         #expect(UpdateCheckStatus.latest.titleKey == "updates.status.latest")
         #expect(UpdateCheckStatus.updateAvailable.titleKey == "updates.status.updateAvailable")
         #expect(aboutSource.contains(#"infoRow("about.updateStatus", LocalizedStringKey(appState.updateStatus.titleKey))"#))
-        #expect(aboutSource.contains(#"linkInfoRow("about.github", "ScrollBridge", urlString: "https://github.com/PHalfStudio/ScrollBridge/releases/latest")"#))
+        #expect(aboutSource.contains(#"linkInfoRow("about.github", "MouseBridge", urlString: "https://github.com/PHalfStudio/MouseBridge/releases/latest")"#))
         #expect(aboutSource.contains("metadata.updateStatusKey") == false)
         #expect(appStateSource.contains("updateStatus = .latest"))
         #expect(appStateSource.contains("updateStatus = .updateAvailable"))
@@ -196,7 +196,7 @@ struct MouseBridgeCoreTests {
         #expect(appStateSource.contains("checkForUpdatesAtLaunch"))
         #expect(appStateSource.contains("updateCheckTimer"))
         #expect(appStateSource.contains("86_400"))
-        #expect(checkerSource.contains("https://api.github.com/repos/PHalfStudio/ScrollBridge/releases/latest"))
+        #expect(checkerSource.contains("https://api.github.com/repos/PHalfStudio/MouseBridge/releases/latest"))
         #expect(checkerSource.contains("If-None-Match"))
         #expect(checkerSource.contains("User-Agent"))
         #expect(checkerSource.contains("304"))
@@ -204,16 +204,50 @@ struct MouseBridgeCoreTests {
         #expect(try localizedStringValues(for: "updates.action.remindLater")["zh-Hans"] == "7天内不要提醒我")
     }
 
-    @Test func aboutPageListsReferenceProjectAcknowledgements() throws {
-        let metadata = AppAboutMetadata(infoDictionary: [:])
-        #expect(metadata.referenceProjectNames == [
-            "Mac Mouse Fix",
-            "Scroll Reverser",
-            "Mos",
-            "LinearMouse",
-            "Karabiner-Elements"
-        ])
+    @Test func productNamingUsesMouseBridgeAcrossUserVisibleFiles() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let trackedTextFiles = [
+            "README.md",
+            "README_EN.md",
+            "CHANGELOG.md",
+            "PRIVACY.md",
+            "docs/architecture.md",
+            "docs/permissions.md",
+            "docs/release.md",
+            "docs/status.md",
+            "docs/testing.md",
+            "Config/Info.plist",
+            "MouseBridge.xcodeproj/project.pbxproj",
+            "MouseBridge/App/AppState.swift",
+            "MouseBridge/Models/AppModels.swift",
+            "MouseBridge/Resources/Localizable.xcstrings",
+            "MouseBridge/Resources/en.lproj/InfoPlist.strings",
+            "MouseBridge/Resources/zh-Hans.lproj/InfoPlist.strings",
+            "MouseBridge/Services/EventEngines.swift",
+            "MouseBridge/Services/UpdateChecker.swift",
+            "MouseBridge/Views/AboutPage.swift"
+        ]
 
+        for relativePath in trackedTextFiles {
+            let source = try String(contentsOf: projectRoot.appendingPathComponent(relativePath), encoding: .utf8)
+            #expect(source.contains("ScrollBridge") == false, "Old product name remains in \(relativePath)")
+            #expect(source.contains("PHalfStudio/ScrollBridge") == false, "Old GitHub repository remains in \(relativePath)")
+            #expect(source.contains("MouseBridge"), "New product name is missing from \(relativePath)")
+        }
+
+        let infoData = try Data(contentsOf: projectRoot.appendingPathComponent("Config/Info.plist"))
+        let info = try #require(PropertyListSerialization.propertyList(from: infoData, format: nil) as? [String: Any])
+        #expect(info["CFBundleDisplayName"] as? String == "MouseBridge")
+        #expect(info["CFBundleName"] as? String == "MouseBridge")
+        #expect(info["MouseBridgeGitCommit"] as? String == "9b39629")
+        #expect(info["ScrollBridgeGitCommit"] == nil)
+    }
+
+    @Test func aboutPageKeepsReferenceSentenceWithoutProjectNameList() throws {
+        let metadata = AppAboutMetadata(infoDictionary: [:])
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
             .deletingLastPathComponent()
@@ -224,8 +258,32 @@ struct MouseBridgeCoreTests {
             .appendingPathComponent("AboutPage.swift")
         let source = try String(contentsOf: aboutPageURL, encoding: .utf8)
 
-        #expect(source.contains("metadata.referenceProjectNames"))
-        #expect(source.contains(#"ForEach(metadata.referenceProjectNames, id: \.self)"#))
+        #expect(metadata.copyright == "© 2026 PHalfStudio")
+        #expect(source.contains(#"Text("about.references")"#))
+        #expect(source.contains("metadata.referenceProjectNames") == false)
+        #expect(source.contains(#"ForEach(metadata.referenceProjectNames, id: \.self)"#) == false)
+    }
+
+    @Test func copyrightMetadataUsesPHalfStudioName() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let infoPlistURL = projectRoot
+            .appendingPathComponent("Config")
+            .appendingPathComponent("Info.plist")
+        let projectFileURL = projectRoot
+            .appendingPathComponent("MouseBridge.xcodeproj")
+            .appendingPathComponent("project.pbxproj")
+        let data = try Data(contentsOf: infoPlistURL)
+        let plist = try #require(PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any])
+        let copyright = try #require(plist["NSHumanReadableCopyright"] as? String)
+        let projectFile = try String(contentsOf: projectFileURL, encoding: .utf8)
+
+        #expect(copyright == "© 2026 PHalfStudio")
+        #expect(projectFile.contains(#"INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 PHalfStudio";"#))
+        #expect(projectFile.contains("Phalf Studio") == false)
+        #expect(projectFile.contains("PHalf Studio") == false)
     }
 
     @Test func aboutPageUsesApplicationIconWithVoiceOverLabel() throws {
@@ -243,8 +301,8 @@ struct MouseBridgeCoreTests {
         #expect(source.contains("Image(nsImage: NSApp.applicationIconImage)"))
         #expect(source.contains(#".accessibilityLabel(Text("about.appIcon"))"#))
         #expect(source.contains(#"Image(systemName: "computermouse")"#) == false)
-        #expect(values["en"] == "ScrollBridge app icon")
-        #expect(values["zh-Hans"] == "ScrollBridge 应用图标")
+        #expect(values["en"] == "MouseBridge app icon")
+        #expect(values["zh-Hans"] == "MouseBridge 应用图标")
     }
 
     @Test func settingsAboutPageDoesNotAddToolbarTopPadding() throws {
@@ -298,7 +356,7 @@ struct MouseBridgeCoreTests {
         let readme = try String(contentsOf: readmeURL, encoding: .utf8)
 
         #expect(readme.contains("退出菜单栏 App"))
-        #expect(readme.contains("/Applications/ScrollBridge.app"))
+        #expect(readme.contains("/Applications/MouseBridge.app"))
         #expect(readme.contains("系统设置 > 隐私与安全性 > 输入监控 / 辅助功能"))
         #expect(readme.contains("~/Library/Preferences/cn.phalfstudio.MouseBridge.plist"))
     }
@@ -313,9 +371,9 @@ struct MouseBridgeCoreTests {
         let gitignore = try String(contentsOf: projectRoot.appendingPathComponent(".gitignore"), encoding: .utf8)
 
         #expect(readme.contains("MouseBridge/Assets.xcassets/AppIcon.appiconset/AppIcon-256.png"))
-        #expect(readme.contains("[中文](https://github.com/PHalfStudio/ScrollBridge/blob/main/README.md)"))
-        #expect(readme.contains("[English](https://github.com/PHalfStudio/ScrollBridge/blob/main/README_EN.md)"))
-        #expect(readme.contains("https://github.com/PHalfStudio/ScrollBridge/releases/latest"))
+        #expect(readme.contains("[中文](https://github.com/PHalfStudio/MouseBridge/blob/main/README.md)"))
+        #expect(readme.contains("[English](https://github.com/PHalfStudio/MouseBridge/blob/main/README_EN.md)"))
+        #expect(readme.contains("https://github.com/PHalfStudio/MouseBridge/releases/latest"))
         #expect(readme.contains("docs/images/linuxdo.png"))
         #expect(readme.contains("## 功能特性"))
         #expect(readme.contains("## 安装"))
@@ -652,8 +710,8 @@ struct MouseBridgeCoreTests {
         #expect(source.contains(#".accessibilityHint(Text("general.restoreDefaults.hint"))"#))
         #expect(labelValues["en"] == "Restore Defaults")
         #expect(labelValues["zh-Hans"] == "恢复默认设置")
-        #expect(hintValues["en"] == "Reset ScrollBridge settings to their default values.")
-        #expect(hintValues["zh-Hans"] == "将 ScrollBridge 设置恢复为默认值。")
+        #expect(hintValues["en"] == "Reset MouseBridge settings to their default values.")
+        #expect(hintValues["zh-Hans"] == "将 MouseBridge 设置恢复为默认值。")
     }
 
     @Test func smoothScrollDurationValueUsesLocalizedFormat() throws {
@@ -853,8 +911,8 @@ struct MouseBridgeCoreTests {
 
         #expect(values["en"] == "Show in menu bar")
         #expect(values["zh-Hans"] == "在菜单栏显示")
-        #expect(descriptionValues["en"] == "Keep the ScrollBridge menu available from the menu bar.")
-        #expect(descriptionValues["zh-Hans"] == "保持可以从菜单栏打开 ScrollBridge。")
+        #expect(descriptionValues["en"] == "Keep the MouseBridge menu available from the menu bar.")
+        #expect(descriptionValues["zh-Hans"] == "保持可以从菜单栏打开 MouseBridge。")
     }
 
     @Test func settingsSidebarRowsExposeVoiceOverLabelsAndHints() throws {
@@ -940,14 +998,14 @@ struct MouseBridgeCoreTests {
         #expect(mappingHint["zh-Hans"] == "快速开启或关闭鼠标按键映射。")
         #expect(permissionHint["en"] == "Open settings to the permissions and diagnostics page.")
         #expect(permissionHint["zh-Hans"] == "打开设置中的权限与诊断页面。")
-        #expect(settingsHint["en"] == "Open the full ScrollBridge settings window.")
-        #expect(settingsHint["zh-Hans"] == "打开完整的 ScrollBridge 设置窗口。")
+        #expect(settingsHint["en"] == "Open the full MouseBridge settings window.")
+        #expect(settingsHint["zh-Hans"] == "打开完整的 MouseBridge 设置窗口。")
         #expect(diagnosticsHint["en"] == "Open permissions, device, and event listener diagnostics.")
         #expect(diagnosticsHint["zh-Hans"] == "打开权限、设备和事件监听诊断。")
         #expect(aboutHint["en"] == "Open version, privacy, and license information.")
         #expect(aboutHint["zh-Hans"] == "打开版本、隐私和许可信息。")
-        #expect(quitHint["en"] == "Stop ScrollBridge and restore normal system input.")
-        #expect(quitHint["zh-Hans"] == "退出 ScrollBridge 并恢复系统默认输入。")
+        #expect(quitHint["en"] == "Stop MouseBridge and restore normal system input.")
+        #expect(quitHint["zh-Hans"] == "退出 MouseBridge 并恢复系统默认输入。")
     }
 
     @Test func statusBarIconUsesAppKitStatusItemForMouseClicks() throws {
@@ -977,12 +1035,19 @@ struct MouseBridgeCoreTests {
         #expect(statusItemSource.contains("statusItem.menu = nil"))
     }
 
-    @Test func menuOpenedSettingsWindowUsesLaunchWindowToolbarLayout() throws {
+    @Test func statusMenuOpensSettingsThroughSwiftUIWindowScene() throws {
         let sourceURL = URL(fileURLWithPath: #filePath)
         let projectRoot = sourceURL
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let source = try String(
+        let appSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("MouseBridgeApp.swift"),
+            encoding: .utf8
+        )
+        let statusItemSource = try String(
             contentsOf: projectRoot
                 .appendingPathComponent("MouseBridge")
                 .appendingPathComponent("App")
@@ -990,10 +1055,79 @@ struct MouseBridgeCoreTests {
             encoding: .utf8
         )
 
-        #expect(source.contains(".fullSizeContentView"))
-        #expect(source.contains("window.titleVisibility = .hidden"))
-        #expect(source.contains("window.titlebarAppearsTransparent = true"))
-        #expect(source.contains("window.toolbarStyle = .unified"))
+        #expect(appSource.contains(#"@Environment(\.openWindow) private var openWindow"#))
+        #expect(appSource.contains("statusItemController.configureSettingsWindowOpener"))
+        #expect(appSource.contains("openWindow(id: AppWindow.settings.rawValue)"))
+        #expect(statusItemSource.contains("private var openSettingsWindowAction"))
+        #expect(statusItemSource.contains("func configureSettingsWindowOpener"))
+        #expect(statusItemSource.contains("openSettingsWindowAction?()"))
+        #expect(statusItemSource.contains("private func makeSettingsWindow") == false)
+        #expect(statusItemSource.contains("SettingsStatusWindowRootView") == false)
+    }
+
+    @Test func closingSettingsWindowKeepsMenuBarAppRunning() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("MouseBridgeApp.swift"),
+            encoding: .utf8
+        )
+        let delegateSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("MouseBridgeAppDelegate.swift"),
+            encoding: .utf8
+        )
+
+        #expect(appSource.contains("@NSApplicationDelegateAdaptor(MouseBridgeAppDelegate.self)"))
+        #expect(delegateSource.contains("final class MouseBridgeAppDelegate: NSObject, NSApplicationDelegate"))
+        #expect(delegateSource.contains("applicationShouldTerminateAfterLastWindowClosed"))
+        #expect(delegateSource.contains("return false"))
+    }
+
+    @Test func menuAboutOpensMainSettingsWindowOnAboutPage() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("MouseBridgeApp.swift"),
+            encoding: .utf8
+        )
+        let statusItemSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("App")
+                .appendingPathComponent("StatusItemController.swift"),
+            encoding: .utf8
+        )
+        let menuBarSource = try String(
+            contentsOf: projectRoot
+                .appendingPathComponent("MouseBridge")
+                .appendingPathComponent("Views")
+                .appendingPathComponent("MenuBarContentView.swift"),
+            encoding: .utf8
+        )
+
+        #expect(statusItemSource.contains(#"@objc private func openAbout() {"#))
+        #expect(statusItemSource.contains("openSettings(page: .about)"))
+        #expect(menuBarSource.contains("Button(\"menu.about\") { showSettings(page: .about) }"))
+        #expect(appSource.contains(#"Window("window.about""#) == false)
+        #expect(appSource.contains("case about") == false)
+        #expect(statusItemSource.contains("aboutWindow") == false)
+        #expect(statusItemSource.contains("openAboutWindow") == false)
+        #expect(statusItemSource.contains("makeAboutWindow") == false)
+        #expect(statusItemSource.contains("AboutStatusWindowRootView") == false)
+        #expect(menuBarSource.contains("AppWindow.about") == false)
     }
 
     @Test func menuBarExtraVisibilityKeepsOnboardingReachable() {
@@ -1235,6 +1369,7 @@ struct MouseBridgeCoreTests {
         event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: 2)
         event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: -36)
         event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: 24)
+        event.location = .zero
 
         let decision = EventTapScrollPipeline(syntheticMarker: EventTapService.syntheticMarker)
             .decision(for: event, config: config)
@@ -2016,8 +2151,8 @@ struct MouseBridgeCoreTests {
         let inputHint = try localizedStringValues(for: "permissions.request.inputMonitoring.hint")
         let accessibilityHint = try localizedStringValues(for: "permissions.request.accessibility.hint")
 
-        #expect(source.contains(#".accessibilityLabel(Text(LocalizedStringKey(permissionActionLabelKey)))"#))
-        #expect(source.contains(#".accessibilityHint(Text(LocalizedStringKey(permissionActionHintKey)))"#))
+        #expect(source.contains(#".accessibilityLabel(Text(LocalizedStringKey(permissionActionLabelKey(for: kind))))"#))
+        #expect(source.contains(#".accessibilityHint(Text(LocalizedStringKey(permissionActionHintKey(for: kind))))"#))
         #expect(inputLabel["en"] == "Request Input Monitoring permission")
         #expect(inputLabel["zh-Hans"] == "请求输入监控权限")
         #expect(accessibilityLabel["en"] == "Request Accessibility permission")
@@ -2026,6 +2161,27 @@ struct MouseBridgeCoreTests {
         #expect(inputHint["zh-Hans"] == "打开系统提示或设置，用于读取鼠标和键盘事件。")
         #expect(accessibilityHint["en"] == "Opens the system prompt or settings for changing and sending configured input events.")
         #expect(accessibilityHint["zh-Hans"] == "打开系统提示或设置，用于改写和发送已配置的输入事件。")
+    }
+
+    @Test func permissionRowsAlignDescriptionsAfterStatusTagColumn() throws {
+        let sourceURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = sourceURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let viewsRoot = projectRoot
+            .appendingPathComponent("MouseBridge")
+            .appendingPathComponent("Views")
+        let permissionsSource = try String(contentsOf: viewsRoot.appendingPathComponent("PermissionsDiagnosticsPage.swift"), encoding: .utf8)
+        let onboardingSource = try String(contentsOf: viewsRoot.appendingPathComponent("WelcomeOnboardingView.swift"), encoding: .utf8)
+
+        #expect(permissionsSource.contains("PermissionRowsGrid("))
+        #expect(onboardingSource.contains("PermissionRowsGrid("))
+        #expect(permissionsSource.contains("Grid(alignment: .topLeading, horizontalSpacing: 16, verticalSpacing: 8)"))
+        #expect(permissionsSource.contains("GridRow {"))
+        #expect(permissionsSource.contains(".gridColumnAlignment(.leading)"))
+        #expect(permissionsSource.contains(".gridCellColumns(3)"))
+        #expect(permissionsSource.contains("permissionStatusColumnWidth") == false)
+        #expect(permissionsSource.contains("HStack(alignment: .top)") == false)
     }
 
     @Test func diagnosticsRowsExposeCombinedVoiceOverLabelsAndHints() throws {
@@ -2105,8 +2261,8 @@ struct MouseBridgeCoreTests {
         #expect(PermissionStateActionHint.messageKey(for: .unknown) == "permissions.actionHint.unknown")
 
         let values = try localizedStringValues(for: "permissions.actionHint.requiresRestart")
-        #expect(values["en"] == "Quit and reopen ScrollBridge for the new permission to take effect.")
-        #expect(values["zh-Hans"] == "请退出并重新打开 ScrollBridge，让新权限生效。")
+        #expect(values["en"] == "Quit and reopen MouseBridge for the new permission to take effect.")
+        #expect(values["zh-Hans"] == "请退出并重新打开 MouseBridge，让新权限生效。")
     }
 
     @Test func permissionStateResolverMarksRestartRequiredAfterUserVisitsPermissionSettings() {
@@ -2213,8 +2369,8 @@ struct MouseBridgeCoreTests {
         #expect(source.contains(#".accessibilityHint(Text("devices.row.accessibilityHint"))"#))
         #expect(labelValues["en"] == "Device %@, kind %@, identity %@, usage %@, standard HID %@, confidence %@, last event %@")
         #expect(labelValues["zh-Hans"] == "设备 %@，分类 %@，标识 %@，用途 %@，标准 HID %@，置信度 %@，最近事件 %@")
-        #expect(hintValues["en"] == "Use the picker to override how ScrollBridge treats this device.")
-        #expect(hintValues["zh-Hans"] == "使用选择器调整 ScrollBridge 对此设备的处理方式。")
+        #expect(hintValues["en"] == "Use the picker to override how MouseBridge treats this device.")
+        #expect(hintValues["zh-Hans"] == "使用选择器调整 MouseBridge 对此设备的处理方式。")
     }
 
     @Test func deviceKindPickerExposesVoiceOverLabelAndHint() throws {

@@ -3,6 +3,8 @@ import SwiftUI
 
 @main
 struct MouseBridgeApp: App {
+    @NSApplicationDelegateAdaptor(MouseBridgeAppDelegate.self) private var appDelegate
+    @Environment(\.openWindow) private var openWindow
     @StateObject private var appState: AppState
     private let statusItemController: StatusItemController
 
@@ -14,6 +16,11 @@ struct MouseBridgeApp: App {
     }
 
     var body: some Scene {
+        let _ = statusItemController.configureSettingsWindowOpener {
+            openWindow(id: AppWindow.settings.rawValue)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+        }
+
         Window("window.settings", id: AppWindow.settings.rawValue) {
             AppBootstrapView {
                 SettingsRootView()
@@ -24,22 +31,11 @@ struct MouseBridgeApp: App {
             .frame(minWidth: 760, minHeight: 500)
         }
         .defaultSize(width: 820, height: 560)
-
-        Window("window.about", id: AppWindow.about.rawValue) {
-            AppBootstrapView {
-                AboutPage()
-                    .environmentObject(appState)
-                    .environment(\.locale, appState.locale)
-                    .frame(width: 520, height: 460)
-            }
-            .environmentObject(appState)
-        }
     }
 }
 
 enum AppWindow: String {
     case settings
-    case about
 }
 
 struct AppBootstrapView<Content: View>: View {

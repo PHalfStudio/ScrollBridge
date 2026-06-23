@@ -405,11 +405,11 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ScrollBridge;
+				INFOPLIST_KEY_CFBundleDisplayName = MouseBridge;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "ScrollBridge uses Accessibility only to filter mouse events and send shortcuts that you explicitly configure. It does not upload input, does not save typed text, and does not read the clipboard.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Phalf Studio";
-				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "ScrollBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.";
+				INFOPLIST_KEY_NSAccessibilityUsageDescription = "MouseBridge uses Accessibility only to filter mouse events and send shortcuts that you explicitly configure. It does not upload input, does not save typed text, and does not read the clipboard.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 PHalfStudio";
+				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "MouseBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -442,11 +442,11 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ScrollBridge;
+				INFOPLIST_KEY_CFBundleDisplayName = MouseBridge;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "ScrollBridge uses Accessibility only to filter mouse events and send shortcuts that you explicitly configure. It does not upload input, does not save typed text, and does not read the clipboard.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Phalf Studio";
-				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "ScrollBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.";
+				INFOPLIST_KEY_NSAccessibilityUsageDescription = "MouseBridge uses Accessibility only to filter mouse events and send shortcuts that you explicitly configure. It does not upload input, does not save typed text, and does not read the clipboard.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 PHalfStudio";
+				INFOPLIST_KEY_NSInputMonitoringUsageDescription = "MouseBridge uses Input Monitoring to identify physical mouse wheel and button events locally. It does not upload input, does not save typed text, and does not read the clipboard.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

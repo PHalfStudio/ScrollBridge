@@ -32,7 +32,7 @@ struct AboutPage: View {
                     infoRow("about.copyright", metadata.copyright)
                     linkInfoRow("about.openSourceLicense", metadata.licenseFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-license")
                     linkInfoRow("about.privacyPolicy", metadata.privacyFileName, urlString: "https://sites.phalfstudio.cn/scroll-bridge-privacy")
-                    linkInfoRow("about.github", "ScrollBridge", urlString: "https://github.com/PHalfStudio/ScrollBridge/releases/latest")
+                    linkInfoRow("about.github", "MouseBridge", urlString: "https://github.com/PHalfStudio/MouseBridge/releases/latest")
                     infoRow("about.updateStatus", LocalizedStringKey(appState.updateStatus.titleKey))
                     HStack {
                         Spacer()
@@ -52,13 +52,6 @@ struct AboutPage: View {
                     Text("about.references")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(metadata.referenceProjectNames, id: \.self) { name in
-                            Text(name)
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

@@ -62,7 +62,7 @@ struct MenuBarContentView: View {
             Button("menu.permissionsDiagnostics") { showSettings(page: .permissions) }
                 .accessibilityLabel(Text("menu.permissionsDiagnostics"))
                 .accessibilityHint(Text("menu.permissionsDiagnostics.hint"))
-            Button("menu.about") { showAbout() }
+            Button("menu.about") { showSettings(page: .about) }
                 .accessibilityLabel(Text("menu.about"))
                 .accessibilityHint(Text("menu.about.hint"))
             Divider()
@@ -88,11 +88,6 @@ struct MenuBarContentView: View {
             appState.requestSettingsPage(page)
         }
         openWindow(id: AppWindow.settings.rawValue)
-        NSApplication.shared.activate(ignoringOtherApps: true)
-    }
-
-    private func showAbout() {
-        openWindow(id: AppWindow.about.rawValue)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
 }

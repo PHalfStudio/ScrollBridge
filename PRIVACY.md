@@ -1,6 +1,6 @@
 # Privacy
 
-ScrollBridge 只在本机处理输入事件。
+MouseBridge 只在本机处理输入事件。
 
 - 不上传鼠标、键盘或设备数据。
 - 不保存键入文本。
